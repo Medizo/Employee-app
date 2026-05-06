@@ -1,0 +1,123 @@
+[
+  {
+    "id": "l1",
+    "userId": "u1",
+    "companyName": "TechNova Solutions",
+    "contactPerson": "Arjun Mehta",
+    "phone": "+91 99887 76655",
+    "email": "arjun@technova.com",
+    "address": "Bandra Kurla Complex, Mumbai",
+    "servicesInterested": ["Web Development", "SEO"],
+    "source": "Referral",
+    "notes": "Interested in redesigning their corporate website. Budget approved for Q2.",
+    "priority": "High",
+    "status": "Qualified",
+    "activities": [
+      { "id": "a1", "timestamp": "2025-04-20T10:30:00Z", "type": "Call", "description": "Initial discovery call. Client interested in full website overhaul." },
+      { "id": "a2", "timestamp": "2025-04-22T14:00:00Z", "type": "Email", "description": "Sent proposal document with pricing breakdown." },
+      { "id": "a3", "timestamp": "2025-04-25T11:00:00Z", "type": "Meeting", "description": "Demo meeting. Client loved the portfolio. Moving to proposal stage." }
+    ],
+    "createdAt": "2025-04-20T10:00:00Z",
+    "updatedAt": "2025-04-25T11:00:00Z"
+  },
+  {
+    "id": "l2",
+    "userId": "u1",
+    "companyName": "GreenLeaf Organics",
+    "contactPerson": "Meera Joshi",
+    "phone": "+91 88776 65544",
+    "email": "meera@greenleaf.in",
+    "address": "Koramangala, Bangalore",
+    "servicesInterested": ["E-commerce", "Digital Marketing"],
+    "source": "Website",
+    "notes": "Looking for an e-commerce platform for organic products.",
+    "priority": "Medium",
+    "status": "Proposal",
+    "activities": [
+      { "id": "a4", "timestamp": "2025-04-18T09:00:00Z", "type": "Email", "description": "Inbound inquiry from website contact form." },
+      { "id": "a5", "timestamp": "2025-04-19T15:00:00Z", "type": "Call", "description": "Requirements discussion. Needs Shopify integration." }
+    ],
+    "createdAt": "2025-04-18T09:00:00Z",
+    "updatedAt": "2025-04-19T15:00:00Z"
+  },
+  {
+    "id": "l3",
+    "userId": "u1",
+    "companyName": "UrbanFit Gym",
+    "contactPerson": "Karan Malhotra",
+    "phone": "+91 77665 54433",
+    "email": "karan@urbanfit.com",
+    "address": "Connaught Place, Delhi",
+    "servicesInterested": ["Mobile App", "CRM"],
+    "source": "Cold Call",
+    "notes": "Needs a member management app with payment integration.",
+    "priority": "High",
+    "status": "New",
+    "activities": [
+      { "id": "a6", "timestamp": "2025-05-01T11:00:00Z", "type": "Call", "description": "Cold call. Owner showed interest in mobile app for members." }
+    ],
+    "createdAt": "2025-05-01T11:00:00Z",
+    "updatedAt": "2025-05-01T11:00:00Z"
+  },
+  {
+    "id": "l4",
+    "userId": "u2",
+    "companyName": "CloudPeak Analytics",
+    "contactPerson": "Neha Gupta",
+    "phone": "+91 66554 43322",
+    "email": "neha@cloudpeak.io",
+    "address": "Hitec City, Hyderabad",
+    "servicesInterested": ["Data Analytics", "Cloud Solutions"],
+    "source": "Event",
+    "notes": "Met at TechSummit 2025. Interested in dashboard analytics.",
+    "priority": "Hot",
+    "status": "Contacted",
+    "activities": [
+      { "id": "a7", "timestamp": "2025-04-28T16:00:00Z", "type": "Meeting", "description": "Exchanged cards at conference. Very interested in real-time dashboards." },
+      { "id": "a8", "timestamp": "2025-04-30T10:00:00Z", "type": "Email", "description": "Follow-up email with case studies." }
+    ],
+    "createdAt": "2025-04-28T16:00:00Z",
+    "updatedAt": "2025-04-30T10:00:00Z"
+  },
+  {
+    "id": "l5",
+    "userId": "u1",
+    "companyName": "Stellar Education",
+    "contactPerson": "Deepak Rao",
+    "phone": "+91 55443 32211",
+    "email": "deepak@stellar.edu",
+    "address": "Indiranagar, Bangalore",
+    "servicesInterested": ["LMS Platform", "Web Development"],
+    "source": "Social Media",
+    "notes": "Wants a custom LMS with video hosting capabilities.",
+    "priority": "Medium",
+    "status": "Closed",
+    "activities": [
+      { "id": "a9", "timestamp": "2025-03-15T09:00:00Z", "type": "Call", "description": "Initial call. Discussed LMS requirements." },
+      { "id": "a10", "timestamp": "2025-03-20T14:00:00Z", "type": "Demo", "description": "Product demo of LMS features." },
+      { "id": "a11", "timestamp": "2025-04-01T11:00:00Z", "type": "Email", "description": "Contract signed. Deal closed at ₹8,50,000." }
+    ],
+    "createdAt": "2025-03-15T09:00:00Z",
+    "updatedAt": "2025-04-01T11:00:00Z"
+  },
+  {
+    "id": "l6",
+    "userId": "u3",
+    "companyName": "BlueWave Logistics",
+    "contactPerson": "Amit Tiwari",
+    "phone": "+91 44332 21100",
+    "email": "amit@bluewave.co",
+    "address": "Andheri East, Mumbai",
+    "servicesInterested": ["Fleet Management", "IoT Solutions"],
+    "source": "Referral",
+    "notes": "Referred by TechNova. Needs real-time fleet tracking.",
+    "priority": "Low",
+    "status": "Lost",
+    "activities": [
+      { "id": "a12", "timestamp": "2025-04-10T10:00:00Z", "type": "Call", "description": "Referral call. Budget constraints mentioned." },
+      { "id": "a13", "timestamp": "2025-04-15T14:00:00Z", "type": "Email", "description": "Sent budget-friendly proposal. No response." }
+    ],
+    "createdAt": "2025-04-10T10:00:00Z",
+    "updatedAt": "2025-04-15T14:00:00Z"
+  }
+]

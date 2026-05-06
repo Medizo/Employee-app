@@ -1,0 +1,92 @@
+[
+  {
+    "id": "u1",
+    "name": "Ahmad Khan",
+    "email": "ahmad@company.com",
+    "password": "$2a$10$xVqYLGwLz5rLx0Kx0sTq8eN1jB8J5vN3mK9pL2qR4sT6uW8xY0zA",
+    "department": "Sales",
+    "role": "Senior Sales Executive",
+    "phone": "+91 98765 43210",
+    "avatar": "",
+    "notifications": {
+      "email": true,
+      "taskReminders": true,
+      "leaderboard": true,
+      "attendance": true
+    },
+    "theme": "dark",
+    "createdAt": "2025-01-15T00:00:00Z"
+  },
+  {
+    "id": "u2",
+    "name": "Priya Sharma",
+    "email": "priya@company.com",
+    "password": "$2a$10$xVqYLGwLz5rLx0Kx0sTq8eN1jB8J5vN3mK9pL2qR4sT6uW8xY0zA",
+    "department": "Sales",
+    "role": "Sales Executive",
+    "phone": "+91 87654 32109",
+    "avatar": "",
+    "notifications": {
+      "email": true,
+      "taskReminders": true,
+      "leaderboard": false,
+      "attendance": true
+    },
+    "theme": "light",
+    "createdAt": "2025-02-01T00:00:00Z"
+  },
+  {
+    "id": "u3",
+    "name": "Rahul Verma",
+    "email": "rahul@company.com",
+    "password": "$2a$10$xVqYLGwLz5rLx0Kx0sTq8eN1jB8J5vN3mK9pL2qR4sT6uW8xY0zA",
+    "department": "Sales",
+    "role": "Sales Executive",
+    "phone": "+91 76543 21098",
+    "avatar": "",
+    "notifications": {
+      "email": true,
+      "taskReminders": true,
+      "leaderboard": true,
+      "attendance": true
+    },
+    "theme": "dark",
+    "createdAt": "2025-02-15T00:00:00Z"
+  },
+  {
+    "id": "u4",
+    "name": "Sneha Patel",
+    "email": "sneha@company.com",
+    "password": "$2a$10$xVqYLGwLz5rLx0Kx0sTq8eN1jB8J5vN3mK9pL2qR4sT6uW8xY0zA",
+    "department": "Marketing",
+    "role": "Marketing Executive",
+    "phone": "+91 65432 10987",
+    "avatar": "",
+    "notifications": {
+      "email": true,
+      "taskReminders": false,
+      "leaderboard": true,
+      "attendance": true
+    },
+    "theme": "system",
+    "createdAt": "2025-03-01T00:00:00Z"
+  },
+  {
+    "id": "u5",
+    "name": "Vikram Singh",
+    "email": "vikram@company.com",
+    "password": "$2a$10$xVqYLGwLz5rLx0Kx0sTq8eN1jB8J5vN3mK9pL2qR4sT6uW8xY0zA",
+    "department": "Sales",
+    "role": "Sales Manager",
+    "phone": "+91 54321 09876",
+    "avatar": "",
+    "notifications": {
+      "email": true,
+      "taskReminders": true,
+      "leaderboard": true,
+      "attendance": true
+    },
+    "theme": "system",
+    "createdAt": "2025-01-01T00:00:00Z"
+  }
+]

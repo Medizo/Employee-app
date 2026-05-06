@@ -1,0 +1,76 @@
+[
+  {
+    "id": "t1",
+    "userId": "u1",
+    "title": "Prepare Q2 Sales Presentation",
+    "description": "Create a comprehensive sales presentation for the Q2 review meeting. Include all deal closures, pipeline analysis, and revenue forecasts.",
+    "priority": "High",
+    "status": "In Progress",
+    "deadline": "2025-05-10T17:00:00Z",
+    "assignedDate": "2025-05-01T09:00:00Z",
+    "attachments": [],
+    "comments": [
+      { "id": "c1", "text": "Started working on this. Will include charts from last quarter.", "timestamp": "2025-05-02T10:00:00Z", "by": "u1" }
+    ],
+    "completionProof": null,
+    "createdAt": "2025-05-01T09:00:00Z"
+  },
+  {
+    "id": "t2",
+    "userId": "u1",
+    "title": "Follow up with GreenLeaf on Proposal",
+    "description": "Send the revised proposal to GreenLeaf Organics and schedule a follow-up call for next week.",
+    "priority": "Medium",
+    "status": "Pending",
+    "deadline": "2025-05-07T17:00:00Z",
+    "assignedDate": "2025-05-04T09:00:00Z",
+    "attachments": [],
+    "comments": [],
+    "completionProof": null,
+    "createdAt": "2025-05-04T09:00:00Z"
+  },
+  {
+    "id": "t3",
+    "userId": "u1",
+    "title": "Update CRM Lead Data",
+    "description": "Ensure all lead records are up to date with latest contact information and activity logs.",
+    "priority": "Low",
+    "status": "Completed",
+    "deadline": "2025-05-03T17:00:00Z",
+    "assignedDate": "2025-04-30T09:00:00Z",
+    "attachments": [],
+    "comments": [
+      { "id": "c2", "text": "All leads updated with latest info.", "timestamp": "2025-05-03T15:00:00Z", "by": "u1" }
+    ],
+    "completionProof": "Updated all 6 lead records with current contact details and activity logs.",
+    "createdAt": "2025-04-30T09:00:00Z"
+  },
+  {
+    "id": "t4",
+    "userId": "u1",
+    "title": "Client Demo - UrbanFit Gym",
+    "description": "Conduct a product demo for UrbanFit Gym. Show the member management features and payment integration.",
+    "priority": "Urgent",
+    "status": "Pending",
+    "deadline": "2025-05-08T14:00:00Z",
+    "assignedDate": "2025-05-05T09:00:00Z",
+    "attachments": [],
+    "comments": [],
+    "completionProof": null,
+    "createdAt": "2025-05-05T09:00:00Z"
+  },
+  {
+    "id": "t5",
+    "userId": "u2",
+    "title": "Prepare CloudPeak Technical Document",
+    "description": "Draft the technical architecture document for CloudPeak Analytics dashboard project.",
+    "priority": "High",
+    "status": "In Progress",
+    "deadline": "2025-05-09T17:00:00Z",
+    "assignedDate": "2025-05-05T09:00:00Z",
+    "attachments": [],
+    "comments": [],
+    "completionProof": null,
+    "createdAt": "2025-05-05T09:00:00Z"
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "sug1",
+    "userId": "u1",
+    "title": "Implement Quick Search Shortcut",
+    "category": "Tool",
+    "description": "It would be great to have a Ctrl+K shortcut to quickly search across leads, tasks, and forms. This would save a lot of time navigating between sections.",
+    "priority": "Medium",
+    "attachments": [],
+    "status": "Approved",
+    "adminReply": "Great idea! We'll implement this in the next sprint.",
+    "submittedAt": "2025-04-20T10:00:00Z"
+  },
+  {
+    "id": "sug2",
+    "userId": "u1",
+    "title": "Add Email Template Categories",
+    "category": "Process",
+    "description": "Currently all email templates are in one list. Would be helpful to categorize them by use case - Onboarding, Follow-up, Proposal, etc.",
+    "priority": "Low",
+    "attachments": [],
+    "status": "Pending",
+    "adminReply": "",
+    "submittedAt": "2025-05-02T14:00:00Z"
+  },
+  {
+    "id": "sug3",
+    "userId": "u2",
+    "title": "Mobile App for Field Visits",
+    "category": "Tool",
+    "description": "A mobile app would be very useful for logging activities and submitting proof of work while on field visits. Currently have to wait until back in office.",
+    "priority": "High",
+    "attachments": [],
+    "status": "Reviewed",
+    "adminReply": "Under consideration for Q3 roadmap.",
+    "submittedAt": "2025-04-15T11:00:00Z"
+  }
+]

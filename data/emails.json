@@ -1,0 +1,35 @@
+[
+  {
+    "id": "em1",
+    "userId": "u1",
+    "to": "arjun@technova.com",
+    "toName": "Arjun Mehta",
+    "subject": "Revised Proposal - Website Redesign",
+    "body": "Hi Arjun,\n\nThank you for the meeting yesterday. Please find the revised proposal attached with the updated pricing.\n\nLooking forward to your feedback.\n\nBest regards,\nAhmad",
+    "template": "Proposal",
+    "status": "Sent",
+    "sentAt": "2025-04-22T14:30:00Z"
+  },
+  {
+    "id": "em2",
+    "userId": "u1",
+    "to": "meera@greenleaf.in",
+    "toName": "Meera Joshi",
+    "subject": "Follow-up: E-commerce Platform Discussion",
+    "body": "Dear Meera,\n\nJust following up on our conversation about the e-commerce platform. Would you be available for a call this week to discuss the Shopify integration options?\n\nPlease let me know your availability.\n\nWarm regards,\nAhmad",
+    "template": "Follow-up",
+    "status": "Sent",
+    "sentAt": "2025-05-01T10:00:00Z"
+  },
+  {
+    "id": "em3",
+    "userId": "u1",
+    "to": "karan@urbanfit.com",
+    "toName": "Karan Malhotra",
+    "subject": "Introduction - Member Management Solutions",
+    "body": "Hello Karan,\n\nIt was great speaking with you today. As discussed, we specialize in building custom member management apps with seamless payment integration.\n\nI'd love to schedule a demo at your convenience.\n\nBest,\nAhmad",
+    "template": "Introduction",
+    "status": "Sent",
+    "sentAt": "2025-05-01T11:30:00Z"
+  }
+]

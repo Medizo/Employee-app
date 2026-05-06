@@ -1,0 +1,77 @@
+[
+  {
+    "id": "att1", "userId": "u1", "date": "2025-05-01",
+    "status": "Present", "loginTime": "09:05", "logoutTime": "18:30",
+    "totalHours": 9.42, "workMode": "Office", "tasks": "Client calls, proposal preparation", "notes": ""
+  },
+  {
+    "id": "att2", "userId": "u1", "date": "2025-05-02",
+    "status": "Present", "loginTime": "09:00", "logoutTime": "19:00",
+    "totalHours": 10, "workMode": "Office", "tasks": "Demo preparation, team meeting", "notes": "Overtime for demo prep"
+  },
+  {
+    "id": "att3", "userId": "u1", "date": "2025-05-03",
+    "status": "Weekend", "loginTime": null, "logoutTime": null,
+    "totalHours": 0, "workMode": null, "tasks": "", "notes": ""
+  },
+  {
+    "id": "att4", "userId": "u1", "date": "2025-05-04",
+    "status": "Weekend", "loginTime": null, "logoutTime": null,
+    "totalHours": 0, "workMode": null, "tasks": "", "notes": ""
+  },
+  {
+    "id": "att5", "userId": "u1", "date": "2025-05-05",
+    "status": "Present", "loginTime": "08:55", "logoutTime": "18:45",
+    "totalHours": 9.83, "workMode": "Remote", "tasks": "Lead follow-ups, email campaigns", "notes": "Working from home"
+  },
+  {
+    "id": "att6", "userId": "u1", "date": "2025-04-28",
+    "status": "Present", "loginTime": "09:10", "logoutTime": "18:00",
+    "totalHours": 8.83, "workMode": "Office", "tasks": "Conference preparation", "notes": ""
+  },
+  {
+    "id": "att7", "userId": "u1", "date": "2025-04-29",
+    "status": "Present", "loginTime": "09:00", "logoutTime": "18:15",
+    "totalHours": 9.25, "workMode": "Office", "tasks": "Team training session", "notes": ""
+  },
+  {
+    "id": "att8", "userId": "u1", "date": "2025-04-30",
+    "status": "Half Day", "loginTime": "09:00", "logoutTime": "13:00",
+    "totalHours": 4, "workMode": "Office", "tasks": "Morning meetings", "notes": "Left early - personal work"
+  },
+  {
+    "id": "att9", "userId": "u1", "date": "2025-04-25",
+    "status": "On Leave", "loginTime": null, "logoutTime": null,
+    "totalHours": 0, "workMode": null, "tasks": "", "notes": "Planned leave"
+  },
+  {
+    "id": "att10", "userId": "u1", "date": "2025-04-24",
+    "status": "Present", "loginTime": "09:05", "logoutTime": "18:30",
+    "totalHours": 9.42, "workMode": "Hybrid", "tasks": "Client meetings", "notes": ""
+  },
+  {
+    "id": "att11", "userId": "u1", "date": "2025-04-23",
+    "status": "Present", "loginTime": "09:15", "logoutTime": "18:00",
+    "totalHours": 8.75, "workMode": "Office", "tasks": "Sales review", "notes": ""
+  },
+  {
+    "id": "att12", "userId": "u1", "date": "2025-04-22",
+    "status": "Present", "loginTime": "09:00", "logoutTime": "19:30",
+    "totalHours": 10.5, "workMode": "Office", "tasks": "Proposal finalization", "notes": "Late night push"
+  },
+  {
+    "id": "att13", "userId": "u1", "date": "2025-04-21",
+    "status": "Present", "loginTime": "09:00", "logoutTime": "18:00",
+    "totalHours": 9, "workMode": "Office", "tasks": "Regular work", "notes": ""
+  },
+  {
+    "id": "att14", "userId": "u1", "date": "2025-04-18",
+    "status": "Present", "loginTime": "09:30", "logoutTime": "18:00",
+    "totalHours": 8.5, "workMode": "Remote", "tasks": "Remote client calls", "notes": ""
+  },
+  {
+    "id": "att15", "userId": "u1", "date": "2025-04-17",
+    "status": "Absent", "loginTime": null, "logoutTime": null,
+    "totalHours": 0, "workMode": null, "tasks": "", "notes": "Unplanned absence"
+  }
+]

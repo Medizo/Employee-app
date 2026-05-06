@@ -1,0 +1,124 @@
+[
+  {
+    "id": "s1",
+    "userId": "u1",
+    "formType": "Daily Activity Report",
+    "status": "Reviewed",
+    "data": {
+      "date": "2025-05-04",
+      "totalCalls": 12,
+      "totalEmails": 8,
+      "demos": 1,
+      "newLeads": 3,
+      "followUps": 5,
+      "dealsInPipeline": 2,
+      "revenue": 0,
+      "highlights": "Closed demo with UrbanFit Gym. Very promising lead.",
+      "challenges": "Difficulty reaching CloudPeak decision maker.",
+      "planForTomorrow": "Follow up with GreenLeaf on proposal."
+    },
+    "adminComments": "Good work on the UrbanFit demo. Keep pushing on CloudPeak.",
+    "submittedAt": "2025-05-04T18:30:00Z",
+    "reviewedAt": "2025-05-05T09:00:00Z"
+  },
+  {
+    "id": "s2",
+    "userId": "u1",
+    "formType": "Lead Entry",
+    "status": "Submitted",
+    "data": {
+      "companyName": "UrbanFit Gym",
+      "contactPerson": "Karan Malhotra",
+      "designation": "Owner",
+      "phone": "+91 77665 54433",
+      "email": "karan@urbanfit.com",
+      "companySize": "50-100",
+      "industry": "Fitness",
+      "servicesInterested": ["Mobile App", "CRM"],
+      "budgetRange": "₹5L - ₹10L",
+      "leadSource": "Cold Call",
+      "priority": "High",
+      "notes": "Very interested in member management app."
+    },
+    "adminComments": "",
+    "submittedAt": "2025-05-01T12:00:00Z",
+    "reviewedAt": null
+  },
+  {
+    "id": "s3",
+    "userId": "u1",
+    "formType": "Deal Closure",
+    "status": "Reviewed",
+    "data": {
+      "companyName": "Stellar Education",
+      "dealTitle": "Custom LMS Platform",
+      "dealValue": 850000,
+      "contractDuration": "12 months",
+      "servicesSold": ["LMS Platform", "Web Development"],
+      "paymentTerms": "50% Advance, 50% on delivery",
+      "closureDate": "2025-04-01",
+      "pocDetails": "Deepak Rao - CEO",
+      "notes": "Premium package with video hosting and analytics."
+    },
+    "adminComments": "Excellent deal! Well negotiated.",
+    "submittedAt": "2025-04-01T16:00:00Z",
+    "reviewedAt": "2025-04-02T10:00:00Z"
+  },
+  {
+    "id": "s4",
+    "userId": "u1",
+    "formType": "Expense Report",
+    "status": "Flagged",
+    "data": {
+      "expenseDate": "2025-05-03",
+      "category": "Client Meeting",
+      "amount": 3500,
+      "currency": "INR",
+      "description": "Lunch with GreenLeaf Organics team at The Taj",
+      "approvalStatus": "Pending"
+    },
+    "adminComments": "Please attach receipt for verification.",
+    "submittedAt": "2025-05-03T19:00:00Z",
+    "reviewedAt": "2025-05-04T11:00:00Z"
+  },
+  {
+    "id": "s5",
+    "userId": "u2",
+    "formType": "Client Follow-up",
+    "status": "Submitted",
+    "data": {
+      "clientName": "CloudPeak Analytics",
+      "followUpDate": "2025-05-05T10:00:00Z",
+      "mode": "Call",
+      "summary": "Discussed dashboard requirements. Client wants real-time data sync.",
+      "clientMood": "Interested",
+      "nextAction": "Send technical architecture document",
+      "nextFollowUp": "2025-05-08"
+    },
+    "adminComments": "",
+    "submittedAt": "2025-05-05T10:30:00Z",
+    "reviewedAt": null
+  },
+  {
+    "id": "s6",
+    "userId": "u1",
+    "formType": "Daily Activity Report",
+    "status": "Submitted",
+    "data": {
+      "date": "2025-05-05",
+      "totalCalls": 15,
+      "totalEmails": 10,
+      "demos": 2,
+      "newLeads": 1,
+      "followUps": 7,
+      "dealsInPipeline": 3,
+      "revenue": 0,
+      "highlights": "Great progress with GreenLeaf proposal. New lead from LinkedIn.",
+      "challenges": "Need updated pricing sheet for enterprise plans.",
+      "planForTomorrow": "Complete UrbanFit proposal and follow up with BlueWave."
+    },
+    "adminComments": "",
+    "submittedAt": "2025-05-05T18:00:00Z",
+    "reviewedAt": null
+  }
+]

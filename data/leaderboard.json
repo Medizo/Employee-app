@@ -1,0 +1,7 @@
+[
+  { "userId": "u1", "name": "Ahmad Khan", "dealsCount": 5, "callsMade": 142, "followUps": 89, "score": 920, "trend": "up" },
+  { "userId": "u5", "name": "Vikram Singh", "dealsCount": 7, "callsMade": 165, "followUps": 102, "score": 1050, "trend": "same" },
+  { "userId": "u2", "name": "Priya Sharma", "dealsCount": 4, "callsMade": 120, "followUps": 78, "score": 780, "trend": "up" },
+  { "userId": "u3", "name": "Rahul Verma", "dealsCount": 3, "callsMade": 98, "followUps": 65, "score": 650, "trend": "down" },
+  { "userId": "u4", "name": "Sneha Patel", "dealsCount": 6, "callsMade": 155, "followUps": 95, "score": 980, "trend": "up" }
+]

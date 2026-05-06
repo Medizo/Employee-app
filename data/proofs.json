@@ -1,0 +1,35 @@
+[
+  {
+    "id": "p1",
+    "userId": "u1",
+    "leadId": "l1",
+    "leadName": "TechNova Solutions",
+    "activityType": "Meeting",
+    "description": "Product demo conducted with the TechNova team. Showed portfolio and discussed requirements.",
+    "attachments": [],
+    "reviewStatus": "Approved",
+    "submittedAt": "2025-04-25T12:00:00Z"
+  },
+  {
+    "id": "p2",
+    "userId": "u1",
+    "leadId": "l2",
+    "leadName": "GreenLeaf Organics",
+    "activityType": "Email",
+    "description": "Sent detailed proposal with Shopify integration pricing.",
+    "attachments": [],
+    "reviewStatus": "Pending",
+    "submittedAt": "2025-05-01T15:00:00Z"
+  },
+  {
+    "id": "p3",
+    "userId": "u1",
+    "leadId": "l5",
+    "leadName": "Stellar Education",
+    "activityType": "Demo",
+    "description": "Final demo before deal closure. Client signed contract.",
+    "attachments": [],
+    "reviewStatus": "Approved",
+    "submittedAt": "2025-04-01T16:30:00Z"
+  }
+]
