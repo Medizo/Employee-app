@@ -134,6 +134,7 @@ export default function DashboardLayout({ children }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [emailUnread, setEmailUnread] = useState(0);
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(d => {
@@ -195,7 +196,15 @@ export default function DashboardLayout({ children }) {
   }, []);
 
   useEffect(() => {
-    if (user) fetchTasks();
+    if (user) {
+      fetchTasks();
+      // Fetch unread email replies
+      fetch('/api/emails/unread').then(r => r.json()).then(d => setEmailUnread(d.count || 0)).catch(() => {});
+      const emailPoll = setInterval(() => {
+        fetch('/api/emails/unread').then(r => r.json()).then(d => setEmailUnread(d.count || 0)).catch(() => {});
+      }, 60000);
+      return () => clearInterval(emailPoll);
+    }
   }, [user, fetchTasks]);
 
   const clearNotifications = () => {
@@ -304,6 +313,14 @@ export default function DashboardLayout({ children }) {
                   {active && <div style={{ position: 'absolute', left: 0, top: '22%', bottom: '22%', width: 3, borderRadius: 2, background: '#818cf8' }} />}
                   <Icon size={19} strokeWidth={active ? 2 : 1.5} style={{ flexShrink: 0 }} />
                   {sideOpen && <span>{item.label}</span>}
+                  {item.label === 'Workspace' && emailUnread > 0 && (
+                    <span style={{
+                      position: 'absolute', top: 4, right: sideOpen ? 8 : 4,
+                      background: '#ef4444', color: '#fff', borderRadius: 50,
+                      padding: '1px 6px', fontSize: '0.6rem', fontWeight: 800,
+                      minWidth: 16, textAlign: 'center', lineHeight: '14px',
+                    }}>{emailUnread}</span>
+                  )}
                 </button>
               );
             })}
@@ -385,7 +402,7 @@ export default function DashboardLayout({ children }) {
               <div style={{ position: 'relative' }}>
                 <button onClick={() => { setNotificationsOpen(!notificationsOpen); setProfileOpen(false); }} style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)', border: '1px solid var(--surface-border)', color: 'var(--text-muted)', position: 'relative', cursor: 'pointer', transition: 'all 0.15s' }}>
                   <Bell size={17} />
-                  {notifications.length > 0 && <span style={{ position: 'absolute', top: 6, right: 6, width: 7, height: 7, borderRadius: '50%', background: '#f472b6', border: '2px solid var(--surface)' }} />}
+                  {(notifications.length > 0 || emailUnread > 0) && <span style={{ position: 'absolute', top: 6, right: 6, width: 7, height: 7, borderRadius: '50%', background: emailUnread > 0 ? '#ef4444' : '#f472b6', border: '2px solid var(--surface)' }} />}
                 </button>
                 {notificationsOpen && (
                   <div style={{ position: 'absolute', top: '120%', right: 0, width: 280, background: 'var(--surface)', border: '1px solid var(--surface-border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', zIndex: 100, overflow: 'hidden' }}>

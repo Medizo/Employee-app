@@ -1,15 +1,19 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
 export default function EmailPage() {
   const [leads, setLeads] = useState([]);
   const [emails, setEmails] = useState([]);
+  const [replies, setReplies] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [tab, setTab] = useState('compose');
+  const [openThread, setOpenThread] = useState(null); // lead email for thread view
   const [form, setForm] = useState({ to: '', toName: '', subject: '', body: '', template: '' });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
+  const [syncing, setSyncing] = useState(false);
 
   // AI states
   const [aiContext, setAiContext] = useState('');
@@ -25,10 +29,24 @@ export default function EmailPage() {
     'Proposal': { subject: 'Proposal - {company}', body: 'Dear {name},\n\nPlease find attached our proposal for {company}. We have carefully tailored it based on our discussions.\n\nPlease let us know if you have any questions.\n\nWarm regards' },
   };
 
+  const syncInbox = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/emails/sync');
+      const d = await res.json();
+      setReplies(d.replies || []);
+      setUnreadCount(d.unreadCount || 0);
+    } catch {}
+    setSyncing(false);
+  }, []);
+
   useEffect(() => {
     fetch('/api/leads').then(r => r.json()).then(d => setLeads(d.leads || []));
     fetch('/api/emails').then(r => r.json()).then(d => setEmails(d.emails || []));
-  }, []);
+    syncInbox();
+    const interval = setInterval(syncInbox, 60000); // poll every 60s
+    return () => clearInterval(interval);
+  }, [syncInbox]);
 
   const selectLead = (leadId) => {
     const lead = leads.find(l => l.id === leadId);
@@ -139,10 +157,15 @@ export default function EmailPage() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {['compose', 'sent'].map(t => (
-          <button key={t} onClick={() => setTab(t)} className={`btn ${tab === t ? 'btn-primary' : 'btn-secondary'}`} style={{ textTransform: 'capitalize' }}>{t === 'compose' ? '✍️ Compose' : '📤 Sent Emails'}</button>
-        ))}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button onClick={() => { setTab('compose'); setOpenThread(null); }} className={`btn ${tab === 'compose' ? 'btn-primary' : 'btn-secondary'}`}>✍️ Compose</button>
+        <button onClick={() => { setTab('inbox'); setOpenThread(null); syncInbox(); }} className={`btn ${tab === 'inbox' ? 'btn-primary' : 'btn-secondary'}`} style={{ position: 'relative' }}>
+          📥 Inbox
+          {unreadCount > 0 && <span style={{ position: 'absolute', top: -6, right: -6, background: '#ef4444', color: '#fff', borderRadius: 50, padding: '1px 7px', fontSize: '0.68rem', fontWeight: 800, minWidth: 18, textAlign: 'center' }}>{unreadCount}</span>}
+        </button>
+        <button onClick={() => { setTab('sent'); setOpenThread(null); }} className={`btn ${tab === 'sent' ? 'btn-primary' : 'btn-secondary'}`}>📤 Sent</button>
+        <button onClick={() => { setTab('threads'); setOpenThread(null); }} className={`btn ${tab === 'threads' ? 'btn-primary' : 'btn-secondary'}`}>💬 Conversations</button>
+        {syncing && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>🔄 Syncing...</span>}
       </div>
 
       {tab === 'compose' && (
@@ -487,6 +510,153 @@ export default function EmailPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* ═══════ INBOX TAB — Replies from leads ═══════ */}
+      {tab === 'inbox' && (
+        <div>
+          {replies.length === 0 ? (
+            <div className="card" style={{ textAlign: 'center', padding: 50, color: 'var(--text-muted)' }}>
+              <p style={{ fontSize: '2rem', marginBottom: 8 }}>📭</p>
+              <p>No replies yet. Replies from your leads will appear here.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {replies.map((r, i) => (
+                <div key={r.graphId || i} onClick={async () => {
+                  if (!r.isRead) {
+                    await fetch('/api/emails/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ graphId: r.graphId }) });
+                    setReplies(prev => prev.map(x => x.graphId === r.graphId ? { ...x, isRead: true } : x));
+                    setUnreadCount(c => Math.max(0, c - 1));
+                  }
+                  setOpenThread(r.fromEmail);
+                  setTab('threads');
+                }} className="card" style={{
+                  padding: '16px 20px', cursor: 'pointer', transition: 'all 0.2s',
+                  border: !r.isRead ? '2px solid #6366f1' : '1px solid var(--surface-border)',
+                  background: !r.isRead ? 'rgba(99,102,241,0.04)' : 'var(--surface)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: !r.isRead ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: !r.isRead ? '#fff' : 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', flexShrink: 0 }}>
+                      {r.fromName?.charAt(0) || '?'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: !r.isRead ? 700 : 500, fontSize: '0.88rem', color: 'var(--text)' }}>{r.fromName || r.fromEmail}</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{new Date(r.receivedAt).toLocaleString()}</span>
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{r.fromEmail}</div>
+                    </div>
+                    {!r.isRead && <span style={{ background: '#6366f1', color: '#fff', padding: '2px 8px', borderRadius: 50, fontSize: '0.65rem', fontWeight: 800 }}>NEW</span>}
+                  </div>
+                  <div style={{ fontWeight: !r.isRead ? 600 : 400, fontSize: '0.85rem', marginBottom: 4 }}>{r.subject}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.bodyPreview}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════ CONVERSATIONS TAB — Full thread view ═══════ */}
+      {tab === 'threads' && (
+        <div>
+          {!openThread ? (
+            /* Show list of lead conversations */
+            (() => {
+              const leadEmailsSet = [...new Set(emails.map(e => e.to?.toLowerCase()).filter(Boolean))];
+              const leadConversations = leadEmailsSet.map(email => {
+                const sent = emails.filter(e => e.to?.toLowerCase() === email);
+                const received = replies.filter(r => r.fromEmail?.toLowerCase() === email);
+                const hasUnread = received.some(r => !r.isRead);
+                const lastDate = [...sent.map(s => s.sentAt), ...received.map(r => r.receivedAt)].sort().pop();
+                const lead = leads.find(l => l.email?.toLowerCase() === email);
+                return { email, sent, received, hasUnread, lastDate, lead, total: sent.length + received.length };
+              }).filter(c => c.total > 0).sort((a, b) => new Date(b.lastDate) - new Date(a.lastDate));
+
+              return leadConversations.length === 0 ? (
+                <div className="card" style={{ textAlign: 'center', padding: 50, color: 'var(--text-muted)' }}>
+                  <p style={{ fontSize: '2rem', marginBottom: 8 }}>💬</p><p>No conversations yet. Send an email to start one.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {leadConversations.map(c => (
+                    <div key={c.email} onClick={() => setOpenThread(c.email)} className="card" style={{
+                      padding: '14px 18px', cursor: 'pointer', transition: 'all 0.2s',
+                      border: c.hasUnread ? '2px solid #6366f1' : '1px solid var(--surface-border)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: c.hasUnread ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.hasUnread ? '#fff' : 'var(--text-muted)', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>
+                          {(c.lead?.contactPerson || c.email).charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{c.lead?.contactPerson || c.email} {c.lead ? `— ${c.lead.companyName}` : ''}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.email} · {c.sent.length} sent · {c.received.length} received</div>
+                        </div>
+                        {c.hasUnread && <span style={{ background: '#ef4444', color: '#fff', padding: '2px 8px', borderRadius: 50, fontSize: '0.65rem', fontWeight: 800 }}>NEW</span>}
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{new Date(c.lastDate).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()
+          ) : (
+            /* Show individual conversation thread */
+            (() => {
+              const threadSent = emails.filter(e => e.to?.toLowerCase() === openThread.toLowerCase());
+              const threadReceived = replies.filter(r => r.fromEmail?.toLowerCase() === openThread.toLowerCase());
+              const threadLead = leads.find(l => l.email?.toLowerCase() === openThread.toLowerCase());
+              const timeline = [
+                ...threadSent.map(s => ({ ...s, direction: 'sent', timestamp: s.sentAt })),
+                ...threadReceived.map(r => ({ ...r, direction: 'received', timestamp: r.receivedAt })),
+              ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+              // Mark unread replies as read
+              threadReceived.filter(r => !r.isRead).forEach(async r => {
+                await fetch('/api/emails/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ graphId: r.graphId }) });
+              });
+
+              return (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                    <button onClick={() => setOpenThread(null)} className="btn btn-ghost btn-sm">← Back</button>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg,#6366f1,#818cf8)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.75rem' }}>
+                      {(threadLead?.contactPerson || openThread).charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{threadLead?.contactPerson || openThread} {threadLead ? `— ${threadLead.companyName}` : ''}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{openThread} · {timeline.length} messages</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 600, overflowY: 'auto', padding: '0 4px' }}>
+                    {timeline.map((msg, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: msg.direction === 'sent' ? 'flex-end' : 'flex-start' }}>
+                        <div style={{
+                          maxWidth: '75%', padding: '12px 16px', borderRadius: 14,
+                          background: msg.direction === 'sent' ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'var(--surface)',
+                          color: msg.direction === 'sent' ? '#fff' : 'var(--text)',
+                          border: msg.direction === 'received' ? '1px solid var(--surface-border)' : 'none',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                        }}>
+                          <div style={{ fontSize: '0.72rem', opacity: 0.7, marginBottom: 4, fontWeight: 600 }}>
+                            {msg.direction === 'sent' ? '📤 You' : `📥 ${msg.fromName || openThread}`} · {new Date(msg.timestamp).toLocaleString()}
+                          </div>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 600, marginBottom: 4 }}>{msg.subject}</div>
+                          {msg.direction === 'sent' ? (
+                            <div style={{ fontSize: '0.85rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{msg.body}</div>
+                          ) : (
+                            <div style={{ fontSize: '0.85rem', lineHeight: 1.5 }}>{msg.bodyPreview || '(No content)'}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()
+          )}
         </div>
       )}
 
