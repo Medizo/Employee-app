@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { getDb } from '@/lib/db';
+import { sanitizeInput, sanitizeString, isNonEmptyString, isOneOf } from '@/lib/sanitize';
 import { v4 as uuid } from 'uuid';
 
 // GET: Fetch current user's leaves
@@ -35,11 +36,30 @@ export async function GET() {
 export async function POST(req) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const body = await req.json();
-  const { date, leaveType, reason } = body;
 
-  if (!date || !leaveType || !reason) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  let body;
+  try {
+    body = sanitizeInput(await req.json());
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  const date = sanitizeString(body.date, 10);
+  const leaveType = sanitizeString(body.leaveType, 50);
+  const reason = sanitizeString(body.reason, 1000);
+
+  if (!isNonEmptyString(date) || !isNonEmptyString(leaveType) || !isNonEmptyString(reason)) {
+    return NextResponse.json({ error: 'Date, leave type, and reason are required' }, { status: 400 });
+  }
+
+  // Validate leave type
+  if (!isOneOf(leaveType, ['Casual Leave', 'Sick Leave', 'Earned Leave', 'Comp Off', 'LOP'])) {
+    return NextResponse.json({ error: 'Invalid leave type' }, { status: 400 });
+  }
+
+  // Validate date format (YYYY-MM-DD)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return NextResponse.json({ error: 'Invalid date format (expected YYYY-MM-DD)' }, { status: 400 });
   }
 
   // If using comp-off, check balance

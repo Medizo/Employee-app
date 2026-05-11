@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { ListTodo, Clock, RotateCcw, CheckCircle2, AlertTriangle, Play, Check, MessageSquare, Send, X, Calendar } from 'lucide-react';
+import { ListTodo, Clock, RotateCcw, CheckCircle2, AlertTriangle, Play, Check, MessageSquare, Send, X, Calendar, Paperclip } from 'lucide-react';
 
 const priorityOrder = { Urgent: 0, High: 1, Medium: 2, Low: 3 };
 
@@ -10,6 +10,7 @@ export default function TasksPage() {
   const [prioFilter, setPrioFilter] = useState('');
   const [detail, setDetail] = useState(null);
   const [comment, setComment] = useState('');
+  const [proofFile, setProofFile] = useState(null);
 
   useEffect(() => { fetchTasks(); }, []);
   const fetchTasks = () => fetch('/api/tasks').then(r => r.json()).then(d => setTasks(d.tasks || []));
@@ -21,10 +22,21 @@ export default function TasksPage() {
     .filter(t => (!filter || getDisplayStatus(t) === filter) && (!prioFilter || t.priority === prioFilter))
     .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
-  const updateStatus = async (id, status) => {
-    await fetch('/api/tasks', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status }) });
+  const updateStatus = async (id, status, proof = null) => {
+    const payload = { id, status };
+    if (proof) payload.completionProof = proof;
+    await fetch('/api/tasks', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     fetchTasks();
-    if (detail?.id === id) setDetail(d => ({ ...d, status }));
+    if (detail?.id === id) setDetail(d => ({ ...d, status, completionProof: proof || d.completionProof }));
+    if (status === 'Completed') setProofFile(null);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => setProofFile(event.target.result);
+    reader.readAsDataURL(file);
   };
 
   const addComment = async () => {
@@ -151,16 +163,39 @@ export default function TasksPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16, fontSize: '0.85rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Calendar size={14} color="var(--text-muted)" />
-                <span style={{ color: 'var(--text-muted)' }}>Assigned:</span> {new Date(detail.assignedDate).toLocaleDateString()}
+                <span style={{ color: 'var(--text-muted)' }}>Assigned:</span> {new Date(detail.createdAt || detail.deadline).toLocaleDateString()}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Clock size={14} color="var(--text-muted)" />
                 <span style={{ color: 'var(--text-muted)' }}>Deadline:</span> {new Date(detail.deadline).toLocaleDateString()}
               </div>
             </div>
+
+            {detail.status === 'In Progress' && (
+               <div style={{ marginBottom: 20, background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: 10 }}>
+                 <p style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Paperclip size={14} /> Attach work (Optional)
+                 </p>
+                 <input type="file" accept=".pdf,image/*" onChange={handleFileChange} style={{ fontSize: '0.8rem', width: '100%' }} />
+               </div>
+            )}
+
+            {detail.completionProof && (
+               <div style={{ marginBottom: 20, padding: '12px 14px', background: 'var(--bg-secondary)', borderRadius: 10 }}>
+                 <p style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Paperclip size={14} /> Attached Work
+                 </p>
+                 {detail.completionProof.startsWith('data:image') ? (
+                    <img src={detail.completionProof} alt="Proof" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }} />
+                 ) : (
+                    <a href={detail.completionProof} download="Attachment" style={{ fontSize: '0.85rem', color: 'var(--primary)', textDecoration: 'underline' }}>Download Attachment</a>
+                 )}
+               </div>
+            )}
+
             <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
               {detail.status === 'Pending' && <button className="btn btn-primary btn-sm" onClick={() => updateStatus(detail.id, 'In Progress')}><Play size={14} /> Start</button>}
-              {detail.status === 'In Progress' && <button className="btn btn-success btn-sm" onClick={() => updateStatus(detail.id, 'Completed')}><Check size={14} /> Complete</button>}
+              {detail.status === 'In Progress' && <button className="btn btn-success btn-sm" onClick={() => updateStatus(detail.id, 'Completed', proofFile)}><Check size={14} /> Complete Task</button>}
             </div>
 
             {/* Comments */}

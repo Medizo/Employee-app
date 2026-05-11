@@ -1,14 +1,40 @@
 import { NextResponse } from 'next/server';
 import { readData, getDb } from '@/lib/db';
 import { createToken, setSession } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rateLimit';
+import { sanitizeString, isValidEmail } from '@/lib/sanitize';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request) {
   try {
-    const { email, password } = await request.json();
+    // Rate limiting — 10 login attempts per 15-minute window per IP
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const { limited } = checkRateLimit(`login:${ip}`, 10);
+    if (limited) {
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': '900' } }
+      );
+    }
+
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+
+    const email = sanitizeString(body.email, 254);
+    const password = sanitizeString(body.password, 128);
+
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
+
+    if (!isValidEmail(email)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+    }
+
     const users = await readData('users');
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (!user) {
@@ -74,4 +100,3 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
