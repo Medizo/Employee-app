@@ -45,14 +45,27 @@ export default function EmailPage() {
     setForm({ ...form, subject, body, template: name });
   };
 
+  const [sendError, setSendError] = useState('');
+
   const handleSend = async () => {
     if (!form.to || !form.subject || !form.body) return;
     setLoading(true);
-    await fetch('/api/emails', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
-    setSuccess(true);
-    setTimeout(() => { setSuccess(false); setForm({ to: '', toName: '', subject: '', body: '', template: '' }); setSelectedLead(null); setTab('sent'); }, 1500);
+    setSendError('');
+    try {
+      const res = await fetch('/api/emails', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const data = await res.json();
+      if (data.warning) {
+        setSendError(data.warning);
+        setTimeout(() => setSendError(''), 8000);
+      } else {
+        setSuccess(true);
+        setTimeout(() => { setSuccess(false); setForm({ to: '', toName: '', subject: '', body: '', template: '' }); setSelectedLead(null); setTab('sent'); }, 1500);
+      }
+      fetch('/api/emails').then(r => r.json()).then(d => setEmails(d.emails || []));
+    } catch (err) {
+      setSendError('Network error — could not send email');
+    }
     setLoading(false);
-    fetch('/api/emails').then(r => r.json()).then(d => setEmails(d.emails || []));
   };
 
   // ═══ AI Actions ═══
@@ -137,7 +150,25 @@ export default function EmailPage() {
 
           {/* ═══════ LEFT: EMAIL FORM ═══════ */}
           <div className="card" style={{ padding: '24px 28px' }}>
-            {success && <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '12px', color: 'var(--success)', marginBottom: 16, textAlign: 'center' }}>✅ Email sent successfully!</div>}
+            {success && <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '12px', color: 'var(--success)', marginBottom: 16, textAlign: 'center' }}>✅ Email delivered successfully via indiaops@cluso.in!</div>}
+
+            {/* Send Error/Warning */}
+            {sendError && (
+              <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '12px 16px', color: '#ef4444', marginBottom: 16, fontSize: '0.88rem' }}>
+                ⚠️ {sendError}
+              </div>
+            )}
+
+            {/* FROM badge */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',
+              background: 'rgba(16, 185, 129, 0.06)', borderRadius: 10, marginBottom: 16,
+              border: '1px solid rgba(16, 185, 129, 0.15)',
+            }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#059669' }}>FROM:</span>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text)', fontWeight: 500 }}>indiaops@cluso.in</span>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginLeft: 'auto', fontStyle: 'italic' }}>via Microsoft 365</span>
+            </div>
 
             {/* AI Success Banner */}
             {aiSuccess && (
@@ -432,17 +463,26 @@ export default function EmailPage() {
       {tab === 'sent' && (
         <div className="table-container">
           <table>
-            <thead><tr><th>Date</th><th>To</th><th>Subject</th><th>Template</th><th>Status</th></tr></thead>
+            <thead><tr><th>Date</th><th>From</th><th>To</th><th>Subject</th><th>Status</th></tr></thead>
             <tbody>
               {emails.length === 0 ? (
                 <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No emails sent yet</td></tr>
-              ) : emails.map((e, idx) => (
+              ) : [...emails].reverse().map((e, idx) => (
                 <tr key={`${e.id}-${idx}`}>
-                  <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(e.sentAt).toLocaleDateString()}</td>
-                  <td><strong>{e.toName}</strong><br/><span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{e.to}</span></td>
+                  <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{new Date(e.sentAt).toLocaleDateString()}<br/><span style={{ fontSize: '0.72rem' }}>{new Date(e.sentAt).toLocaleTimeString()}</span></td>
+                  <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{e.sentFrom || 'indiaops@cluso.in'}</td>
+                  <td><strong>{e.toName || e.to}</strong><br/><span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{e.to}</span></td>
                   <td>{e.subject}</td>
-                  <td>{e.template && <span className="badge badge-submitted">{e.template}</span>}</td>
-                  <td><span className="badge badge-approved">{e.status}</span></td>
+                  <td>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '3px 10px', borderRadius: 50, fontSize: '0.72rem', fontWeight: 700,
+                      background: e.status === 'Delivered' ? 'rgba(16,185,129,0.12)' : e.status === 'Failed' ? 'rgba(239,68,68,0.12)' : 'rgba(99,102,241,0.12)',
+                      color: e.status === 'Delivered' ? '#059669' : e.status === 'Failed' ? '#dc2626' : '#6366f1',
+                    }}>
+                      {e.status === 'Delivered' ? '✅' : e.status === 'Failed' ? '❌' : '📤'} {e.status}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>
