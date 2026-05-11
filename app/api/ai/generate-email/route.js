@@ -2,31 +2,83 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyCkbHuO7mPuY4SPL9cdXOIu5QgZKfbZCGU';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+// Models to try in order — flash-lite has higher free-tier rate limits
+const MODELS = [
+  'gemini-2.0-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+];
+
+function getUrl(model) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+}
+
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function callGemini(prompt) {
-  const res = await fetch(GEMINI_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-      },
-    }),
-  });
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 2048,
+    },
+  };
 
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error('Gemini API error:', errText);
-    throw new Error(`Gemini API returned ${res.status}`);
+  let lastError = '';
+
+  for (const model of MODELS) {
+    // Retry up to 3 times per model with backoff for 429s
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch(getUrl(model), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.status === 429) {
+          // Rate limited — parse retry delay from response or use default
+          let waitMs = [5000, 12000, 20000][attempt]; // 5s, 12s, 20s default
+          try {
+            const errData = await res.json();
+            const retryInfo = errData?.error?.details?.find(d => d.retryDelay);
+            if (retryInfo?.retryDelay) {
+              const secs = parseFloat(retryInfo.retryDelay);
+              if (!isNaN(secs)) waitMs = Math.ceil(secs * 1000) + 500;
+            }
+          } catch {}
+          console.log(`Gemini ${model} rate limited (429), attempt ${attempt + 1}/3, waiting ${waitMs}ms...`);
+          lastError = 'Rate limit reached — waiting and retrying...';
+          await sleep(waitMs);
+          continue;
+        }
+
+        if (!res.ok) {
+          const errText = await res.text();
+          console.error(`Gemini ${model} error (${res.status}):`, errText);
+          lastError = `API error ${res.status}`;
+          break; // Try next model
+        }
+
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) {
+          lastError = 'AI returned an empty response';
+          break; // Try next model
+        }
+        return text.trim();
+      } catch (fetchErr) {
+        console.error(`Gemini ${model} fetch error:`, fetchErr.message);
+        lastError = 'Network error connecting to AI service';
+        break; // Try next model
+      }
+    }
   }
 
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('No text in Gemini response');
-  return text.trim();
+  throw new Error(lastError || 'All AI models failed');
 }
 
 export async function POST(req) {
@@ -182,6 +234,6 @@ SUBJECT: <the subject line>
     return NextResponse.json({ error: 'Invalid action. Use: polish, generate, or rewrite' }, { status: 400 });
   } catch (err) {
     console.error('AI Email Error:', err);
-    return NextResponse.json({ error: 'AI generation failed. Please try again.' }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'AI generation failed. Please try again.' }, { status: 500 });
   }
 }
