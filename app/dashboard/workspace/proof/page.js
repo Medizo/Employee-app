@@ -40,7 +40,7 @@ export default function ProofPage() {
               <label className="form-label">Select Lead</label>
               <select value={form.leadId} onChange={e => { const l = leads.find(x => x.id === e.target.value); setForm({...form, leadId: e.target.value, leadName: l?.companyName || ''}); }}>
                 <option value="">Choose lead</option>
-                {leads.map(l => <option key={l.id} value={l.id}>{l.companyName} - {l.contactPerson}</option>)}
+                {leads.map((l, i) => <option key={`${l.id}-${i}`} value={l.id}>{l.companyName} - {l.contactPerson}</option>)}
               </select>
             </div>
             <div className="form-group">
@@ -68,8 +68,8 @@ export default function ProofPage() {
             <tbody>
               {proofs.length === 0 ? (
                 <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No proofs submitted yet</td></tr>
-              ) : proofs.map(p => (
-                <tr key={p.id}>
+              ) : proofs.map((p, idx) => (
+                <tr key={`${p.id}-${idx}`}>
                   <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(p.submittedAt).toLocaleDateString()}</td>
                   <td><strong>{p.leadName}</strong></td>
                   <td><span className="badge badge-submitted">{p.activityType}</span></td>

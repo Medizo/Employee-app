@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { readData } from '@/lib/db';
+import { readData, getDb } from '@/lib/db';
 import { createToken, setSession } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request) {
   try {
@@ -13,8 +14,17 @@ export async function POST(request) {
     if (!user) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
-    // For demo: accept "password123" as plain text match, or any password for easy testing
-    const isValid = password === 'password123' || password === user.password;
+
+    // Support both plain-text passwords (seed data) and bcrypt-hashed passwords (admin-created)
+    let isValid = false;
+    if (user.password && user.password.startsWith('$2')) {
+      // bcrypt hash
+      isValid = await bcrypt.compare(password, user.password);
+    } else {
+      // plain text match
+      isValid = password === user.password;
+    }
+
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
@@ -26,6 +36,35 @@ export async function POST(request) {
       role: user.role,
     });
     await setSession(token);
+
+    // Auto clock-in: start time tracking session
+    try {
+      const db = await getDb();
+      const col = db.collection('timesessions');
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+
+      // Check if already clocked in today
+      const existing = await col.findOne({
+        userId: user.id,
+        date: todayStr,
+        logoutTime: null,
+      });
+
+      if (!existing) {
+        await col.insertOne({
+          userId: user.id,
+          date: todayStr,
+          loginTime: now.toISOString(),
+          logoutTime: null,
+          totalSeconds: 0,
+          lastHeartbeat: now.toISOString(),
+        });
+      }
+    } catch (clockErr) {
+      console.error('Auto clock-in error (non-fatal):', clockErr);
+    }
+
     return NextResponse.json({
       success: true,
       user: { id: user.id, name: user.name, email: user.email, department: user.department, role: user.role, avatar: user.avatar, theme: user.theme }
@@ -35,3 +74,4 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

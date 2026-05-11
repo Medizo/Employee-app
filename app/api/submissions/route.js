@@ -9,7 +9,7 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type');
   const status = searchParams.get('status');
-  let subs = await readData('submissions').filter(s => s.userId === session.id);
+  let subs = (await readData('submissions')).filter(s => s.userId === session.id);
   if (type) subs = subs.filter(s => s.formType === type);
   if (status) subs = subs.filter(s => s.status === status);
   return NextResponse.json({ submissions: subs.reverse() });

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from './layout';
+import { Users, ClipboardList, Handshake, Activity, Flame, Plus, Mail, CalendarCheck, ArrowUpRight, TrendingUp, Clock } from 'lucide-react';
 
 export default function DashboardHome() {
   const ctx = useUser();
@@ -14,77 +15,148 @@ export default function DashboardHome() {
   }, []);
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
 
   const statCards = [
-    { icon: '👥', label: 'My Total Leads', value: stats?.totalLeads || 0, color: '#06b6d4', bg: 'rgba(6,182,212,0.1)' },
-    { icon: '📋', label: 'Tasks Pending', value: stats?.tasksPending || 0, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
-    { icon: '💰', label: 'Deals Closed', value: stats?.dealsClosed || 0, color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
-    { icon: '📞', label: "Today's Activity", value: stats?.todayActivity || 0, color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)' },
-    { icon: '🔥', label: 'Attendance Streak', value: `${stats?.streak || 0}d`, color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
+    { icon: Users, label: 'My Leads', value: stats?.totalLeads || 0, color: '#6366f1', bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.15)' },
+    { icon: ClipboardList, label: 'Tasks Pending', value: stats?.tasksPending || 0, color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.15)' },
+    { icon: Handshake, label: 'Deals Closed', value: stats?.dealsClosed || 0, color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.15)' },
+    { icon: Activity, label: "Today's Activity", value: stats?.todayActivity || 0, color: '#f472b6', bg: 'rgba(244,114,182,0.08)', border: 'rgba(244,114,182,0.15)' },
+    { icon: Flame, label: 'Att. Streak', value: `${stats?.streak || 0}d`, color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.15)' },
   ];
+
+  const quickActions = [
+    { icon: Plus, label: 'Add Lead', href: '/dashboard/workspace/add', desc: 'Create new contact', gradient: 'linear-gradient(135deg, #6366f1, #818cf8)' },
+    { icon: Mail, label: 'Compose Email', href: '/dashboard/workspace/email', desc: 'Send to leads', gradient: 'linear-gradient(135deg, #f472b6, #f9a8d4)' },
+    { icon: CalendarCheck, label: 'Attendance', href: '/dashboard/attendance', desc: 'View your hours', gradient: 'linear-gradient(135deg, #34d399, #6ee7b7)' },
+  ];
+
+  const typeIcons = {
+    lead: '👤', task: '📋', email: '✉️', attendance: '📅', proof: '📎', submission: '📄', default: '📌'
+  };
 
   return (
     <div className="animate-fade">
       {/* Welcome banner */}
       <div style={{
-        background: 'linear-gradient(135deg, #0e7490, #06b6d4, #8b5cf6)',
-        borderRadius: 16, padding: '28px 32px', marginBottom: 24, color: '#fff', position: 'relative', overflow: 'hidden'
+        background: 'linear-gradient(135deg, #312e81 0%, #4f46e5 40%, #818cf8 100%)',
+        borderRadius: 20, padding: '32px 36px', marginBottom: 28, color: '#fff', position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', right: -20, top: -20, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
-        <div style={{ position: 'absolute', right: 40, bottom: -30, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: 4, position: 'relative' }}>Welcome back, {user?.name?.split(' ')[0]} 👋</h1>
-        <p style={{ opacity: 0.9, fontSize: '0.9rem' }}>{user?.department} · {user?.role}</p>
-        <p style={{ opacity: 0.7, fontSize: '0.85rem', marginTop: 4 }}>{today}</p>
+        {/* Decorative elements */}
+        <div style={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+        <div style={{ position: 'absolute', right: 60, bottom: -50, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
+        <div style={{ position: 'absolute', left: '30%', top: -30, width: 80, height: 80, borderRadius: '50%', background: 'rgba(244,114,182,0.12)' }} />
+        
+        <p style={{ opacity: 0.7, fontSize: '0.85rem', fontWeight: 500, marginBottom: 4, position: 'relative' }}>{greeting}</p>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: 6, position: 'relative', letterSpacing: '-0.03em' }}>
+          Welcome back, {user?.name?.split(' ')[0]} 👋
+        </h1>
+        <div style={{ display: 'flex', gap: 16, position: 'relative', flexWrap: 'wrap' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.12)', padding: '5px 14px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 500 }}>
+            {user?.department}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.12)', padding: '5px 14px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 500 }}>
+            {user?.role}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, opacity: 0.6, fontSize: '0.8rem', fontWeight: 400 }}>
+            <Clock size={14} /> {today}
+          </span>
+        </div>
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
-        {statCards.map((s, i) => (
-          <div key={i} className="card card-glow" style={{ display: 'flex', alignItems: 'center', gap: 14, animation: `slideUp 0.4s ease ${i*0.08}s both` }}>
-            <div style={{ width: 48, height: 48, borderRadius: 12, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0 }}>{s.icon}</div>
-            <div>
-              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</p>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>{s.label}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 28 }}>
+        {statCards.map((s, i) => {
+          const Icon = s.icon;
+          return (
+            <div key={i} className="card" style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              animation: `slideUp 0.4s ease ${i * 0.06}s both`,
+              borderColor: s.border,
+            }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 14, background: s.bg,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <Icon size={22} color={s.color} strokeWidth={1.8} />
+              </div>
+              <div>
+                <p style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color, lineHeight: 1, letterSpacing: '-0.03em' }}>{s.value}</p>
+                <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: 3, fontWeight: 500 }}>{s.label}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Quick Actions */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
-        {[
-          { icon: '➕', label: 'Add Lead', href: '/dashboard/workspace/add' },
-          { icon: '✉️', label: 'Compose Email', href: '/dashboard/workspace/email' },
-          { icon: '📅', label: 'Mark Attendance', href: '/dashboard/forms' },
-        ].map((a, i) => (
-          <Link key={i} href={a.href} style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px',
-            background: 'var(--surface)', border: '1px solid var(--surface-border)',
-            borderRadius: 12, color: 'var(--text)', fontWeight: 600, fontSize: '0.85rem',
-            transition: 'all 0.2s', textDecoration: 'none',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary-light)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--surface-border)'; e.currentTarget.style.transform = 'none'; }}>
-            <span style={{ fontSize: '1.2rem' }}>{a.icon}</span>{a.label}
-          </Link>
-        ))}
+      {/* Quick actions */}
+      <h3 style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: 14, color: 'var(--text-secondary)', letterSpacing: '-0.01em' }}>Quick Actions</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 28 }}>
+        {quickActions.map((a, i) => {
+          const Icon = a.icon;
+          return (
+            <Link key={i} href={a.href} style={{
+              display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px',
+              background: 'var(--surface)', border: '1px solid var(--surface-border)',
+              borderRadius: 14, color: 'var(--text)', fontWeight: 600, fontSize: '0.88rem',
+              transition: 'all 0.2s', textDecoration: 'none', position: 'relative', overflow: 'hidden',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary-light)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--surface-border)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
+              <div style={{
+                width: 42, height: 42, borderRadius: 12, background: a.gradient,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <Icon size={20} color="#fff" strokeWidth={2} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontWeight: 600, fontSize: '0.88rem' }}>{a.label}</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400, marginTop: 1 }}>{a.desc}</p>
+              </div>
+              <ArrowUpRight size={16} color="var(--text-muted)" />
+            </Link>
+          );
+        })}
       </div>
 
       {/* Recent Activity */}
       <div className="card">
-        <h3 style={{ fontWeight: 700, marginBottom: 16 }}>📊 Recent Activity</h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(99,102,241,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <TrendingUp size={17} color="var(--primary)" />
+            </div>
+            <h3 style={{ fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.02em' }}>Recent Activity</h3>
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Last 7 days</span>
+        </div>
         {activity.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 24 }}>No recent activity</p>
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: '1.5rem' }}>📭</div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>No recent activity</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: 4 }}>Start by adding a lead or completing a task</p>
+          </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {activity.map((a, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < activity.length - 1 ? '1px solid var(--surface-border)' : 'none' }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', flexShrink: 0 }}>{a.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '0.875rem', fontWeight: 500 }}>{a.text}</p>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{a.time}</p>
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 14, padding: '12px 8px',
+                borderRadius: 10, transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 12,
+                  background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1rem', flexShrink: 0,
+                }}>
+                  {typeIcons[a.type] || typeIcons.default}
                 </div>
-                <span className={`badge badge-${a.type}`} style={{ textTransform: 'capitalize' }}>{a.type}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '0.875rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.text}</p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>{a.time}</p>
+                </div>
+                <span className={`badge badge-${a.type}`} style={{ textTransform: 'capitalize', flexShrink: 0 }}>{a.type}</span>
               </div>
             ))}
           </div>

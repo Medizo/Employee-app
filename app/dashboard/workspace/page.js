@@ -79,7 +79,7 @@ export default function WorkspacePage() {
             </thead>
             <tbody>
               {filtered.map((lead, i) => (
-                <React.Fragment key={lead.id}>
+                <React.Fragment key={`${lead.id}-${i}`}>
                   <tr style={{ cursor: 'pointer' }} onClick={() => setExpanded(expanded === lead.id ? null : lead.id)}>
                     <td>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -105,8 +105,8 @@ export default function WorkspacePage() {
                       <td colSpan={8} style={{ padding: 0 }}>
                         <div style={{ padding: '16px 24px', background: 'var(--bg-secondary)', animation: 'slideUp 0.3s ease' }}>
                           <h4 style={{ fontWeight: 600, marginBottom: 12, fontSize: '0.9rem' }}>📋 Activity Log</h4>
-                          {lead.activities?.length > 0 ? lead.activities.map(a => (
-                            <div key={a.id} style={{ display: 'flex', gap: 12, marginBottom: 10, padding: '8px 12px', background: 'var(--surface)', borderRadius: 8, fontSize: '0.85rem' }}>
+                          {lead.activities?.length > 0 ? lead.activities.map((a, ai) => (
+                            <div key={`${a.id}-${ai}`} style={{ display: 'flex', gap: 12, marginBottom: 10, padding: '8px 12px', background: 'var(--surface)', borderRadius: 8, fontSize: '0.85rem' }}>
                               <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{new Date(a.timestamp).toLocaleDateString()}</span>
                               <span className="badge badge-submitted" style={{ flexShrink: 0 }}>{a.type}</span>
                               <span>{a.description}</span>

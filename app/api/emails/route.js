@@ -6,7 +6,7 @@ import { v4 as uuid } from 'uuid';
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const emails = await readData('emails').filter(e => e.userId === session.id);
+  const emails = (await readData('emails')).filter(e => e.userId === session.id);
   return NextResponse.json({ emails });
 }
 

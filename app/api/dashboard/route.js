@@ -6,10 +6,10 @@ export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const leads = await readData('leads').filter(l => l.userId === session.id);
-  const tasks = await readData('tasks').filter(t => t.userId === session.id);
-  const submissions = await readData('submissions').filter(s => s.userId === session.id);
-  const attendance = await readData('attendance').filter(a => a.userId === session.id);
+  const leads = (await readData('leads')).filter(l => l.userId === session.id);
+  const tasks = (await readData('tasks')).filter(t => t.userId === session.id);
+  const submissions = (await readData('submissions')).filter(s => s.userId === session.id);
+  const attendance = (await readData('attendance')).filter(a => a.userId === session.id);
 
   const dealsClosed = leads.filter(l => l.status === 'Closed').length;
   const tasksPending = tasks.filter(t => t.status === 'Pending' || t.status === 'In Progress').length;

@@ -34,8 +34,8 @@ export default function HistoryPage() {
           <tbody>
             {filtered.length === 0 ? (
               <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No submissions found</td></tr>
-            ) : filtered.map(s => (
-              <tr key={s.id}>
+            ) : filtered.map((s, idx) => (
+              <tr key={`${s.id}-${idx}`}>
                 <td style={{ fontSize: '0.85rem' }}>{new Date(s.submittedAt).toLocaleDateString()}</td>
                 <td><strong>{s.formType}</strong></td>
                 <td><span className={`badge badge-${s.status.toLowerCase()}`}>{s.status}</span></td>

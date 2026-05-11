@@ -57,7 +57,7 @@ export default function EmailPage() {
             <label className="form-label">To</label>
             <select value={form.to} onChange={e => { const lead = leads.find(l => l.email === e.target.value); setForm({...form, to: e.target.value, toName: lead?.contactPerson || ''}); }}>
               <option value="">Select a lead</option>
-              {leads.map(l => <option key={l.id} value={l.email}>{l.contactPerson} ({l.companyName})</option>)}
+              {leads.map((l, i) => <option key={`${l.id}-${i}`} value={l.email}>{l.contactPerson} ({l.companyName})</option>)}
             </select>
           </div>
 
@@ -95,8 +95,8 @@ export default function EmailPage() {
             <tbody>
               {emails.length === 0 ? (
                 <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No emails sent yet</td></tr>
-              ) : emails.map(e => (
-                <tr key={e.id}>
+              ) : emails.map((e, idx) => (
+                <tr key={`${e.id}-${idx}`}>
                   <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(e.sentAt).toLocaleDateString()}</td>
                   <td><strong>{e.toName}</strong><br/><span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{e.to}</span></td>
                   <td>{e.subject}</td>

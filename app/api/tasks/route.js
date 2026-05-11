@@ -6,7 +6,7 @@ import { v4 as uuid } from 'uuid';
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  return NextResponse.json({ tasks: await readData('tasks').filter(t => t.userId === session.id) });
+  return NextResponse.json({ tasks: (await readData('tasks')).filter(t => t.userId === session.id) });
 }
 
 export async function PUT(req) {

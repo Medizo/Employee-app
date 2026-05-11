@@ -66,8 +66,8 @@ export default function SuggestionsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {suggestions.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No suggestions submitted yet</div>
-          ) : suggestions.map(s => (
-            <div key={s.id} className="card">
+          ) : suggestions.map((s, idx) => (
+            <div key={`${s.id}-${idx}`} className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                 <div>
                   <h4 style={{ fontWeight: 700 }}>{s.title}</h4>
