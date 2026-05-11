@@ -36,6 +36,7 @@ export async function PUT(req) {
       timestamp: new Date().toISOString(),
       by: session.id,
     });
+  }
   if (body.completionProof) tasks[idx].completionProof = sanitizeString(body.completionProof, 5000000);
 
   await writeData('tasks', tasks);
