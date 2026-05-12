@@ -86,10 +86,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div style={styles.options}>
-              <a href="/forgot-password" style={styles.forgotLink}>Forgot password?</a>
-            </div>
-
             <button type="submit" disabled={loading} style={styles.submitBtn}
               onMouseEnter={e => { if (!loading) { e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = '0 8px 24px rgba(15,23,42,0.3)'; } }}
               onMouseLeave={e => { e.target.style.transform = 'none'; e.target.style.boxShadow = '0 4px 16px rgba(15,23,42,0.2)'; }}>
@@ -123,8 +119,6 @@ const styles = {
   inputIcon: { position: 'absolute', left: 14, pointerEvents: 'none', zIndex: 1, display: 'flex' },
   input: { width: '100%', padding: '13px 14px 13px 46px', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, color: '#0f172a', fontSize: '0.9rem', transition: 'border 0.2s, box-shadow 0.2s', outline: 'none', fontFamily: 'inherit' },
   eyeBtn: { position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' },
-  options: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 24 },
-  forgotLink: { fontSize: '0.85rem', color: '#6366f1', textDecoration: 'none', fontWeight: 500 },
-  submitBtn: { width: '100%', padding: '14px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 12, fontSize: '1rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 4px 16px rgba(15,23,42,0.2)', fontFamily: 'inherit', letterSpacing: '-0.01em' },
+  submitBtn: { width: '100%', padding: '14px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 12, fontSize: '1rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 4px 16px rgba(15,23,42,0.2)', fontFamily: 'inherit', letterSpacing: '-0.01em', marginTop: 24 },
   spinner: { width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.6s linear infinite', display: 'inline-block' },
 };
