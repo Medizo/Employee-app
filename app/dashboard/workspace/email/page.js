@@ -1,19 +1,24 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function EmailPage() {
+  const searchParams = useSearchParams();
   const [leads, setLeads] = useState([]);
   const [emails, setEmails] = useState([]);
   const [replies, setReplies] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [tab, setTab] = useState('compose');
-  const [openThread, setOpenThread] = useState(null); // lead email for thread view
+  const [openThread, setOpenThread] = useState(null);
   const [form, setForm] = useState({ to: '', toName: '', subject: '', body: '', template: '' });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const [replyForm, setReplyForm] = useState({ subject: '', body: '' });
+  const [replySending, setReplySending] = useState(false);
+  const [replySuccess, setReplySuccess] = useState(false);
 
   // AI states
   const [aiContext, setAiContext] = useState('');
@@ -41,12 +46,46 @@ export default function EmailPage() {
   }, []);
 
   useEffect(() => {
-    fetch('/api/leads').then(r => r.json()).then(d => setLeads(d.leads || []));
+    fetch('/api/leads').then(r => r.json()).then(d => {
+      setLeads(d.leads || []);
+      // Auto-select lead from URL param ?lead=ID
+      const leadId = searchParams.get('lead');
+      if (leadId) {
+        const lead = (d.leads || []).find(l => l.id === leadId);
+        if (lead) {
+          setSelectedLead(lead);
+          setForm(f => ({ ...f, to: lead.email || '', toName: lead.contactPerson || '' }));
+          setTab('compose');
+        }
+      }
+    });
     fetch('/api/emails').then(r => r.json()).then(d => setEmails(d.emails || []));
     syncInbox();
-    const interval = setInterval(syncInbox, 60000); // poll every 60s
+    const interval = setInterval(syncInbox, 60000);
     return () => clearInterval(interval);
-  }, [syncInbox]);
+  }, [syncInbox, searchParams]);
+
+  // Quick reply from conversation thread
+  const handleReply = async (toEmail, toName) => {
+    if (!replyForm.subject.trim() || !replyForm.body.trim()) return;
+    setReplySending(true);
+    try {
+      const res = await fetch('/api/emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: toEmail, toName, subject: replyForm.subject, body: replyForm.body }),
+      });
+      const data = await res.json();
+      if (!data.warning) {
+        setReplySuccess(true);
+        setReplyForm({ subject: '', body: '' });
+        // Refresh emails
+        fetch('/api/emails').then(r => r.json()).then(d => setEmails(d.emails || []));
+        setTimeout(() => setReplySuccess(false), 3000);
+      }
+    } catch {}
+    setReplySending(false);
+  };
 
   const selectLead = (leadId) => {
     const lead = leads.find(l => l.id === leadId);
@@ -652,6 +691,35 @@ export default function EmailPage() {
                         </div>
                       </div>
                     ))}
+                  </div>
+
+                  {/* ═══ INLINE REPLY BOX ═══ */}
+                  <div className="card" style={{ marginTop: 16, padding: '16px 20px' }}>
+                    {replySuccess && <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '10px', color: '#059669', marginBottom: 12, textAlign: 'center', fontSize: '0.85rem' }}>✅ Reply sent!</div>}
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>💬 Quick Reply to {threadLead?.contactPerson || openThread}</div>
+                    <input
+                      placeholder="Subject"
+                      value={replyForm.subject}
+                      onChange={e => setReplyForm({ ...replyForm, subject: e.target.value })}
+                      style={{ width: '100%', padding: '8px 12px', border: '1.5px solid var(--surface-border)', borderRadius: 8, background: 'var(--bg-secondary)', color: 'var(--text)', fontSize: '0.85rem', marginBottom: 8 }}
+                    />
+                    <textarea
+                      placeholder="Type your reply..."
+                      value={replyForm.body}
+                      onChange={e => setReplyForm({ ...replyForm, body: e.target.value })}
+                      rows={3}
+                      style={{ width: '100%', padding: '8px 12px', border: '1.5px solid var(--surface-border)', borderRadius: 8, background: 'var(--bg-secondary)', color: 'var(--text)', fontSize: '0.85rem', resize: 'vertical', marginBottom: 8 }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={() => handleReply(openThread, threadLead?.contactPerson || '')}
+                        disabled={replySending || !replyForm.subject.trim() || !replyForm.body.trim()}
+                        className="btn btn-primary btn-sm"
+                        style={{ padding: '8px 18px', fontSize: '0.82rem', opacity: (replySending || !replyForm.subject.trim() || !replyForm.body.trim()) ? 0.5 : 1 }}
+                      >
+                        {replySending ? '⏳ Sending...' : '📤 Send Reply'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
