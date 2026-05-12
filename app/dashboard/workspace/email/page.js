@@ -696,7 +696,29 @@ export default function EmailPage() {
                   {/* ═══ INLINE REPLY BOX ═══ */}
                   <div className="card" style={{ marginTop: 16, padding: '16px 20px' }}>
                     {replySuccess && <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '10px', color: '#059669', marginBottom: 12, textAlign: 'center', fontSize: '0.85rem' }}>✅ Reply sent!</div>}
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>💬 Quick Reply to {threadLead?.contactPerson || openThread}</div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        💬 Quick Reply to {threadLead?.contactPerson || openThread}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {Object.entries({
+                          'Acknowledge': { subject: 'Re: Updates', body: `Hi ${threadLead?.contactPerson || ''},\n\nThanks for the update. Received and noted.\n\nBest,` },
+                          'Schedule Call': { subject: "Re: Let's Connect", body: `Hi ${threadLead?.contactPerson || ''},\n\nWhen would be a good time for a quick 10-minute call this week?\n\nBest regards,` },
+                          'Send Info': { subject: 'Re: Information Requested', body: `Hi ${threadLead?.contactPerson || ''},\n\nPlease find the requested information below.\n\nLet me know if you need anything else.\n\nBest,` }
+                        }).map(([name, t]) => (
+                          <button
+                            key={name}
+                            onClick={() => setReplyForm({ subject: t.subject, body: t.body })}
+                            className="btn btn-sm btn-ghost"
+                            style={{ fontSize: '0.72rem', padding: '4px 10px', background: 'var(--bg-secondary)', border: '1px solid var(--surface-border)' }}
+                          >
+                            {name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <input
                       placeholder="Subject"
                       value={replyForm.subject}

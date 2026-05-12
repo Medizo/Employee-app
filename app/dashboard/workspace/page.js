@@ -212,34 +212,48 @@ export default function WorkspacePage() {
                     <tr key={lead.id + '-exp'}>
                       <td colSpan={9} style={{ padding: 0 }}>
                         <div style={{ padding: '20px 24px', background: 'var(--bg-secondary)', animation: 'slideUp 0.3s ease' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                            <h4 style={{ fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span>📋</span> Activity History
-                              {lead.activities?.length > 0 && (
-                                <span style={{
-                                  background: 'var(--primary-glow)', color: 'var(--primary)',
-                                  padding: '2px 8px', borderRadius: 50, fontSize: '0.72rem', fontWeight: 700,
-                                }}>
-                                  {lead.activities.length}
-                                </span>
-                              )}
-                            </h4>
-                            <button
-                              className="btn btn-sm btn-primary"
-                              onClick={(e) => { e.stopPropagation(); openFollowup(lead); }}
-                              style={{ padding: '5px 12px', fontSize: '0.75rem' }}
-                            >
-                              + Add Follow-up
-                            </button>
-                          </div>
-                          {lead.activities?.length > 0 ? (
+                          {(() => {
+                            const leadEmail = lead.email?.toLowerCase();
+                            const sentToLead = allEmails.filter(e => e.to?.toLowerCase() === leadEmail);
+                            const receivedFromLead = allReplies.filter(r => r.fromEmail?.toLowerCase() === leadEmail);
+                            
+                            const emailActivities = [
+                              ...sentToLead.map(s => ({ type: 'Email', timestamp: s.sentAt, description: `📤 Sent: ${s.subject}\n${(s.body || '').substring(0, 150)}${s.body?.length > 150 ? '...' : ''}` })),
+                              ...receivedFromLead.map(r => ({ type: 'Email', timestamp: r.receivedAt, description: `📥 Received: ${r.subject}\n${(r.bodyPreview || '').substring(0, 150)}${r.bodyPreview?.length > 150 ? '...' : ''}` }))
+                            ];
+
+                            const combinedActivities = [...(lead.activities || []), ...emailActivities].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                            return (
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                                  <h4 style={{ fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span>📋</span> Activity History
+                                    {combinedActivities.length > 0 && (
+                                      <span style={{
+                                        background: 'var(--primary-glow)', color: 'var(--primary)',
+                                        padding: '2px 8px', borderRadius: 50, fontSize: '0.72rem', fontWeight: 700,
+                                      }}>
+                                        {combinedActivities.length}
+                                      </span>
+                                    )}
+                                  </h4>
+                                  <button
+                                    className="btn btn-sm btn-primary"
+                                    onClick={(e) => { e.stopPropagation(); openFollowup(lead); }}
+                                    style={{ padding: '5px 12px', fontSize: '0.75rem' }}
+                                  >
+                                    + Add Follow-up
+                                  </button>
+                                </div>
+                                {combinedActivities.length > 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
                               {/* Timeline line */}
                               <div style={{
                                 position: 'absolute', left: 15, top: 12, bottom: 12,
                                 width: 2, background: 'var(--surface-border)', borderRadius: 1,
                               }} />
-                              {[...lead.activities].reverse().map((a, ai) => {
+                              {combinedActivities.map((a, ai) => {
                                 const style = getActivityStyle(a.type);
                                 return (
                                   <div key={`${a.id}-${ai}`} style={{
@@ -297,65 +311,7 @@ export default function WorkspacePage() {
                               </button>
                             </div>
                           )}
-
-                          {/* ═══ EMAIL CONVERSATION HISTORY ═══ */}
-                          {(() => {
-                            const leadEmail = lead.email?.toLowerCase();
-                            const sentToLead = allEmails.filter(e => e.to?.toLowerCase() === leadEmail);
-                            const receivedFromLead = allReplies.filter(r => r.fromEmail?.toLowerCase() === leadEmail);
-                            const emailTimeline = [
-                              ...sentToLead.map(s => ({ ...s, dir: 'sent', ts: s.sentAt })),
-                              ...receivedFromLead.map(r => ({ ...r, dir: 'received', ts: r.receivedAt })),
-                            ].sort((a, b) => new Date(b.ts) - new Date(a.ts));
-
-                            if (emailTimeline.length === 0) return null;
-
-                            return (
-                              <div style={{ marginTop: 16 }}>
-                                <h4 style={{ fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                  <span>✉️</span> Email History
-                                  <span style={{ background: 'rgba(99,102,241,0.1)', color: '#6366f1', padding: '2px 8px', borderRadius: 50, fontSize: '0.72rem', fontWeight: 700 }}>
-                                    {emailTimeline.length}
-                                  </span>
-                                </h4>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                  {emailTimeline.slice(0, 5).map((msg, mi) => (
-                                    <div key={mi} style={{
-                                      display: 'flex', gap: 10, padding: '10px 14px',
-                                      background: 'var(--surface)', borderRadius: 10,
-                                      border: msg.dir === 'received' && !msg.isRead ? '2px solid #6366f1' : '1px solid var(--surface-border)',
-                                    }}>
-                                      <div style={{
-                                        width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                                        background: msg.dir === 'sent' ? 'rgba(99,102,241,0.12)' : 'rgba(16,185,129,0.12)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: '0.72rem',
-                                      }}>
-                                        {msg.dir === 'sent' ? '📤' : '📥'}
-                                      </div>
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                                          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: msg.dir === 'sent' ? '#6366f1' : '#059669' }}>
-                                            {msg.dir === 'sent' ? 'Sent' : 'Received'}
-                                          </span>
-                                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                            {new Date(msg.ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                                          </span>
-                                        </div>
-                                        <div style={{ fontSize: '0.82rem', fontWeight: 500, marginBottom: 2 }}>{msg.subject}</div>
-                                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                          {msg.dir === 'sent' ? (msg.body || '').substring(0, 80) : (msg.bodyPreview || '').substring(0, 80)}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                  {emailTimeline.length > 5 && (
-                                    <button className="btn btn-sm btn-ghost" onClick={() => router.push(`/dashboard/workspace/email?lead=${lead.id}`)} style={{ alignSelf: 'center', fontSize: '0.78rem' }}>
-                                      View all {emailTimeline.length} emails →
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
+                              </>
                             );
                           })()}
                         </div>
