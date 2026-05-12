@@ -45,10 +45,16 @@ export default function SettingsPage() {
     setSaving(false); setSaved('Preferences saved!'); setTimeout(() => setSaved(''), 2000);
   };
 
-  const saveTheme = async (t) => {
+  const saveThemeMode = async (t) => {
     ctx.setTheme(t);
     await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'theme', theme: t }) });
-    setSaved('Theme updated!'); setTimeout(() => setSaved(''), 2000);
+    setSaved('Theme mode updated!'); setTimeout(() => setSaved(''), 2000);
+  };
+
+  const saveThemeColor = async (c) => {
+    ctx.setThemeColor(c);
+    await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'themeColor', themeColor: c }) });
+    setSaved('Theme color updated!'); setTimeout(() => setSaved(''), 2000);
   };
 
   const tabs = [
@@ -179,19 +185,40 @@ export default function SettingsPage() {
           {tab === 'theme' && (
             <div className="card">
               <h3 style={{ fontWeight: 700, marginBottom: 20 }}>🎨 Theme</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-                {[
-                  { key: 'light', icon: '☀️', label: 'Light', bg: '#f0f4f8', text: '#0f172a' },
-                  { key: 'dark', icon: '🌙', label: 'Dark', bg: '#0b1120', text: '#f1f5f9' },
-                  { key: 'system', icon: '💻', label: 'System', bg: 'linear-gradient(135deg, #f0f4f8 50%, #0b1120 50%)', text: '#0f172a' },
-                ].map(t => (
-                  <button key={t.key} onClick={() => saveTheme(t.key)}
-                    style={{ padding: 20, borderRadius: 12, border: `2px solid ${ctx?.theme === t.key ? 'var(--primary-light)' : 'var(--surface-border)'}`, cursor: 'pointer', textAlign: 'center', background: 'var(--surface)', transition: 'all 0.2s' }}>
-                    <div style={{ width: 48, height: 48, borderRadius: 12, background: t.bg, margin: '0 auto 10px', border: '1px solid var(--surface-border)' }} />
-                    <span style={{ fontSize: '1.2rem' }}>{t.icon}</span>
-                    <p style={{ fontWeight: 600, marginTop: 4 }}>{t.label}</p>
-                  </button>
-                ))}
+              
+              <div style={{ marginBottom: 24 }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 12 }}>Color Palette</h4>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  {[
+                    { key: 'beige', label: 'Beige', color: '#c29b76' },
+                    { key: 'seafoam', label: 'Seafoam', color: '#5b9e8c' },
+                    { key: 'rose', label: 'Rose', color: '#c97a8e' },
+                  ].map(c => (
+                    <button key={c.key} onClick={() => saveThemeColor(c.key)}
+                      style={{ padding: '8px 16px', borderRadius: 20, border: `2px solid ${ctx?.themeColor === c.key ? 'var(--text)' : 'transparent'}`, cursor: 'pointer', background: 'var(--surface-hover)', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s' }}>
+                      <div style={{ width: 16, height: 16, borderRadius: '50%', background: c.color }} />
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)' }}>{c.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 12 }}>Appearance</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                  {[
+                    { key: 'light', icon: '☀️', label: 'Light', bg: '#f0f4f8' },
+                    { key: 'dark', icon: '🌙', label: 'Dark', bg: '#0b1120' },
+                    { key: 'system', icon: '💻', label: 'System', bg: 'linear-gradient(135deg, #f0f4f8 50%, #0b1120 50%)' },
+                  ].map(t => (
+                    <button key={t.key} onClick={() => saveThemeMode(t.key)}
+                      style={{ padding: 20, borderRadius: 12, border: `2px solid ${ctx?.theme === t.key ? 'var(--primary-light)' : 'var(--surface-border)'}`, cursor: 'pointer', textAlign: 'center', background: 'var(--surface)', transition: 'all 0.2s' }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 12, background: t.bg, margin: '0 auto 10px', border: '1px solid var(--surface-border)' }} />
+                      <span style={{ fontSize: '1.2rem' }}>{t.icon}</span>
+                      <p style={{ fontWeight: 600, marginTop: 4, color: 'var(--text)' }}>{t.label}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
