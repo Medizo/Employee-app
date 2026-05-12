@@ -2,6 +2,52 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 
+// ── Helpers ──────────────────────────────────────────────
+const WORK_START_HOUR = 8;  // 8:00 AM
+const WORK_END_HOUR = 20;   // 8:00 PM
+const HEARTBEAT_STALE_MS = 3 * 60 * 1000; // 3 min — if heartbeat older than this, session is stale
+
+/**
+ * Calculate working seconds between two timestamps, 
+ * only counting time within the 8 AM – 8 PM window.
+ */
+function calcWorkingSeconds(loginISO, logoutISO) {
+  const start = new Date(loginISO);
+  const end = new Date(logoutISO);
+
+  if (end <= start) return 0;
+
+  let totalSecs = 0;
+  const cursor = new Date(start);
+
+  // Process day by day
+  while (cursor < end) {
+    const dayStart = new Date(cursor);
+    dayStart.setHours(WORK_START_HOUR, 0, 0, 0);
+
+    const dayEnd = new Date(cursor);
+    dayEnd.setHours(WORK_END_HOUR, 0, 0, 0);
+
+    // Effective start for this day
+    const effectiveStart = cursor < dayStart ? dayStart : new Date(cursor);
+    // Effective end for this day
+    const nextMidnight = new Date(cursor);
+    nextMidnight.setDate(nextMidnight.getDate() + 1);
+    nextMidnight.setHours(0, 0, 0, 0);
+    const effectiveEnd = end < dayEnd ? new Date(end) : dayEnd;
+
+    if (effectiveStart < effectiveEnd && effectiveStart < dayEnd && effectiveEnd > dayStart) {
+      totalSecs += Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / 1000);
+    }
+
+    // Move to start of next day
+    cursor.setDate(cursor.getDate() + 1);
+    cursor.setHours(0, 0, 0, 0);
+  }
+
+  return Math.max(0, totalSecs);
+}
+
 // GET: fetch today's active session + monthly logged hours
 export async function GET(req) {
   const session = await getSession();
@@ -16,40 +62,52 @@ export async function GET(req) {
   const now = new Date();
   const todayStr = localDate || now.toISOString().split('T')[0];
 
+  // ── Auto-close stale sessions (heartbeat > 3 min ago) ──
+  const staleSessions = await col.find({
+    userId: session.id,
+    logoutTime: null,
+    lastHeartbeat: { $lt: new Date(now.getTime() - HEARTBEAT_STALE_MS).toISOString() },
+  }).toArray();
+
+  for (const stale of staleSessions) {
+    const logoutTime = stale.lastHeartbeat; // use last heartbeat as logout
+    const totalSeconds = calcWorkingSeconds(stale.loginTime, logoutTime);
+    await col.updateOne({ _id: stale._id }, { $set: { logoutTime, totalSeconds } });
+    // Sync attendance for the stale session's date
+    const attCol = db.collection('attendance');
+    await syncAttendance(session.id, stale.date, col, attCol);
+  }
+
   // Find today's active session (not yet clocked out)
   const activeSession = await col.findOne({
     userId: session.id,
     logoutTime: null,
   });
 
-  // Find all of today's sessions (including completed ones)
+  // Find all of today's completed sessions
   const todaySessions = await col.find({
     userId: session.id,
     date: todayStr,
+    logoutTime: { $ne: null },
   }).toArray();
 
-
-  // Calculate today's total seconds from completed sessions
   let todayTotalSeconds = 0;
   for (const s of todaySessions) {
-    if (s.logoutTime) {
-      todayTotalSeconds += s.totalSeconds || 0;
-    }
+    todayTotalSeconds += s.totalSeconds || 0;
   }
 
-  // Monthly sessions
+  // Monthly sessions (completed only)
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-31`;
   const monthlySessions = await col.find({
     userId: session.id,
     date: { $gte: monthStart, $lte: monthEnd },
+    logoutTime: { $ne: null },
   }).toArray();
 
   let monthlyTotalSeconds = 0;
   for (const s of monthlySessions) {
-    if (s.logoutTime) {
-      monthlyTotalSeconds += s.totalSeconds || 0;
-    }
+    monthlyTotalSeconds += s.totalSeconds || 0;
   }
 
   return NextResponse.json({
@@ -75,10 +133,9 @@ export async function POST(req) {
   const todayStr = now.toISOString().split('T')[0];
 
   if (action === 'clockin') {
-    // Check if there's already an active session today
+    // Check if there's already an active session
     const existing = await col.findOne({
       userId: session.id,
-      date: todayStr,
       logoutTime: null,
     });
 
@@ -102,7 +159,6 @@ export async function POST(req) {
   if (action === 'clockout') {
     const activeSession = await col.findOne({
       userId: session.id,
-      date: todayStr,
       logoutTime: null,
     });
 
@@ -111,7 +167,7 @@ export async function POST(req) {
     }
 
     const logoutTime = now.toISOString();
-    const totalSeconds = Math.floor((now - new Date(activeSession.loginTime)) / 1000);
+    const totalSeconds = calcWorkingSeconds(activeSession.loginTime, logoutTime);
 
     await col.updateOne(
       { _id: activeSession._id },
@@ -119,15 +175,15 @@ export async function POST(req) {
     );
 
     // Now sync to attendance collection
-    await syncAttendance(session.id, todayStr, col, attCol);
+    await syncAttendance(session.id, activeSession.date, col, attCol);
 
     return NextResponse.json({ success: true, totalSeconds });
   }
 
   if (action === 'heartbeat') {
-    // Update the last heartbeat time on the active session
+    // Update the last heartbeat time on any active session for this user
     await col.updateOne(
-      { userId: session.id, date: todayStr, logoutTime: null },
+      { userId: session.id, logoutTime: null },
       { $set: { lastHeartbeat: now.toISOString() } }
     );
     return NextResponse.json({ success: true });

@@ -34,9 +34,13 @@ function LiveClock({ loginTime, todayTotalSeconds, monthlyTotalSeconds }) {
   const [monthTotal, setMonthTotal] = useState(0);
 
   useEffect(() => {
+    const WORK_START = 8;  // 8 AM
+    const WORK_END = 20;   // 8 PM
+
     const tick = () => {
       const now = new Date();
       const todayStr = getLocalDateStr(now);
+      const currentHour = now.getHours();
 
       let liveToday = 0;
       let liveMonth = 0;
@@ -45,21 +49,25 @@ function LiveClock({ loginTime, todayTotalSeconds, monthlyTotalSeconds }) {
         const loginDate = new Date(loginTime);
         const loginDayStr = getLocalDateStr(loginDate);
 
-        // Total elapsed since login (always counts for month)
-        liveMonth = Math.max(0, Math.floor((now.getTime() - loginDate.getTime()) / 1000));
-
-        if (loginDayStr === todayStr) {
-          // Logged in today — count full elapsed
-          liveToday = liveMonth;
-        } else {
-          // Logged in on a previous day — only count from local midnight
-          const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-          liveToday = Math.max(0, Math.floor((now.getTime() - midnight.getTime()) / 1000));
+        // Only count if we're within working hours right now
+        if (currentHour >= WORK_START && currentHour < WORK_END) {
+          if (loginDayStr === todayStr) {
+            // Logged in today — clamp login start to 8 AM
+            const dayStart = new Date(now);
+            dayStart.setHours(WORK_START, 0, 0, 0);
+            const effectiveLogin = loginDate < dayStart ? dayStart : loginDate;
+            liveToday = Math.max(0, Math.floor((now.getTime() - effectiveLogin.getTime()) / 1000));
+          } else {
+            // Logged in on a previous day — count from 8 AM today
+            const dayStart = new Date(now);
+            dayStart.setHours(WORK_START, 0, 0, 0);
+            liveToday = Math.max(0, Math.floor((now.getTime() - dayStart.getTime()) / 1000));
+          }
+          liveMonth = liveToday; // only add today's live portion to month
         }
+        // Outside 8AM-8PM: liveToday and liveMonth stay 0
       }
 
-      // todayTotalSeconds from API = completed sessions for today only
-      // If login was yesterday, API returns 0 for today (correct)
       setTodayTotal((todayTotalSeconds || 0) + liveToday);
       setMonthTotal((monthlyTotalSeconds || 0) + liveMonth);
     };
@@ -130,6 +138,8 @@ export default function DashboardLayout({ children }) {
     monthlyTotalSeconds: 0,
   });
   const heartbeatRef = useRef(null);
+  const idleTimerRef = useRef(null);
+  const IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -165,19 +175,65 @@ export default function DashboardLayout({ children }) {
     if (!user) return;
     fetchTimeData();
 
-    // Heartbeat every 60 seconds to keep session alive
+    // Heartbeat every 30 seconds to keep session alive
     heartbeatRef.current = setInterval(() => {
       fetch('/api/timetrack', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'heartbeat' }),
       }).catch(() => {});
-    }, 60000);
+    }, 30000);
 
     return () => {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     };
   }, [user, fetchTimeData]);
+
+  // ═══ IDLE TIMER: auto-logout after 15 minutes of inactivity ═══
+  const handleLogout = useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    localStorage.removeItem('user');
+    router.push('/login');
+  }, [router]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const resetIdleTimer = () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(() => {
+        // Auto-logout due to inactivity
+        handleLogout();
+      }, IDLE_TIMEOUT_MS);
+    };
+
+    // Events that reset the idle timer
+    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(e => window.addEventListener(e, resetIdleTimer, { passive: true }));
+
+    // Start the initial timer
+    resetIdleTimer();
+
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      events.forEach(e => window.removeEventListener(e, resetIdleTimer));
+    };
+  }, [user, handleLogout]);
+
+  // ═══ TAB/BROWSER CLOSE: auto clock-out ═══
+  useEffect(() => {
+    if (!user) return;
+
+    const handleBeforeUnload = () => {
+      // Use sendBeacon for reliable fire-and-forget on tab close
+      navigator.sendBeacon('/api/auth/logout', '');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [user]);
 
   useEffect(() => {
     const apply = theme === 'system'
@@ -213,12 +269,6 @@ export default function DashboardLayout({ children }) {
   };
 
   useEffect(() => { setMobileOpen(false); setNotificationsOpen(false); setProfileOpen(false); }, [pathname]);
-
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    localStorage.removeItem('user');
-    router.push('/login');
-  };
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>

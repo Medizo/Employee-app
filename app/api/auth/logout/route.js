@@ -2,6 +2,37 @@ import { NextResponse } from 'next/server';
 import { clearSession, getSession } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 
+const WORK_START_HOUR = 8;
+const WORK_END_HOUR = 20;
+
+function calcWorkingSeconds(loginISO, logoutISO) {
+  const start = new Date(loginISO);
+  const end = new Date(logoutISO);
+  if (end <= start) return 0;
+
+  let totalSecs = 0;
+  const cursor = new Date(start);
+
+  while (cursor < end) {
+    const dayStart = new Date(cursor);
+    dayStart.setHours(WORK_START_HOUR, 0, 0, 0);
+    const dayEnd = new Date(cursor);
+    dayEnd.setHours(WORK_END_HOUR, 0, 0, 0);
+
+    const effectiveStart = cursor < dayStart ? dayStart : new Date(cursor);
+    const effectiveEnd = end < dayEnd ? new Date(end) : dayEnd;
+
+    if (effectiveStart < effectiveEnd && effectiveStart < dayEnd && effectiveEnd > dayStart) {
+      totalSecs += Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / 1000);
+    }
+
+    cursor.setDate(cursor.getDate() + 1);
+    cursor.setHours(0, 0, 0, 0);
+  }
+
+  return Math.max(0, totalSecs);
+}
+
 export async function POST() {
   // Auto clock-out before clearing session
   try {
@@ -11,25 +42,25 @@ export async function POST() {
       const col = db.collection('timesessions');
       const attCol = db.collection('attendance');
       const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
 
-      const activeSession = await col.findOne({
+      // Find ALL active sessions for this user (any date)
+      const activeSessions = await col.find({
         userId: session.id,
-        date: todayStr,
         logoutTime: null,
-      });
+      }).toArray();
 
-      if (activeSession) {
+      for (const activeSession of activeSessions) {
         const logoutTime = now.toISOString();
-        const totalSeconds = Math.floor((now - new Date(activeSession.loginTime)) / 1000);
+        const totalSeconds = calcWorkingSeconds(activeSession.loginTime, logoutTime);
 
         await col.updateOne(
           { _id: activeSession._id },
           { $set: { logoutTime, totalSeconds } }
         );
 
-        // Sync to attendance collection
-        const sessions = await col.find({ userId: session.id, date: todayStr, logoutTime: { $ne: null } }).toArray();
+        // Sync attendance for that session's date
+        const dateStr = activeSession.date;
+        const sessions = await col.find({ userId: session.id, date: dateStr, logoutTime: { $ne: null } }).toArray();
         const totalSecs = sessions.reduce((sum, s) => sum + (s.totalSeconds || 0), 0);
         const totalHours = Math.round((totalSecs / 3600) * 10) / 10;
 
@@ -43,17 +74,17 @@ export async function POST() {
 
         const status = totalHours >= 4 ? 'Present' : totalHours > 0 ? 'Half Day' : 'Absent';
 
-        const existing = await attCol.findOne({ userId: session.id, date: todayStr });
+        const existing = await attCol.findOne({ userId: session.id, date: dateStr });
         if (existing) {
           await attCol.updateOne(
-            { userId: session.id, date: todayStr },
+            { userId: session.id, date: dateStr },
             { $set: { totalHours, loginTime: loginTimeStr, logoutTime: logoutTimeStr, status, workMode: 'Auto-tracked' } }
           );
         } else {
           await attCol.insertOne({
-            id: `att-${session.id}-${todayStr}`,
+            id: `att-${session.id}-${dateStr}`,
             userId: session.id,
-            date: todayStr,
+            date: dateStr,
             status,
             totalHours,
             loginTime: loginTimeStr,
