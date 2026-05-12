@@ -683,11 +683,7 @@ export default function EmailPage() {
                             {msg.direction === 'sent' ? '📤 You' : `📥 ${msg.fromName || openThread}`} · {new Date(msg.timestamp).toLocaleString()}
                           </div>
                           <div style={{ fontSize: '0.78rem', fontWeight: 600, marginBottom: 4 }}>{msg.subject}</div>
-                          {msg.direction === 'sent' ? (
-                            <div style={{ fontSize: '0.85rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{msg.body}</div>
-                          ) : (
-                            <div style={{ fontSize: '0.85rem', lineHeight: 1.5 }}>{msg.bodyPreview || '(No content)'}</div>
-                          )}
+                          <div style={{ fontSize: '0.85rem', lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: msg.bodyHtml || ((msg.direction === 'sent' ? msg.body : msg.bodyPreview) || '').replace(/\n/g, '<br/>') }} />
                         </div>
                       </div>
                     ))}

@@ -289,7 +289,7 @@ export default function WorkspacePage() {
                                           {a.type}
                                         </span>
                                       </div>
-                                      <p style={{ fontSize: '0.85rem', color: 'var(--text)', lineHeight: 1.5 }}>{a.description}</p>
+                                      <p style={{ fontSize: '0.85rem', color: 'var(--text)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{a.description}</p>
                                     </div>
                                   </div>
                                 );
