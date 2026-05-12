@@ -1,12 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 const formTypes = [
   { key: 'lead', icon: '🎯', label: 'Lead Entry', desc: 'Register a new lead', color: '#8b5cf6' },
   { key: 'followup', icon: '🔄', label: 'Client Follow-up', desc: 'Log follow-up activity', color: '#f59e0b' },
   { key: 'expense', icon: '🧾', label: 'Expense Report', desc: 'Submit expense claims', color: '#ef4444' },
-  { key: 'attendance', icon: '📅', label: 'Attendance Entry', desc: 'Mark your attendance', color: '#3b82f6' },
+  { key: 'daily', icon: '📊', label: 'Daily Activity Report', desc: 'Submit your end-of-day report', color: '#06b6d4' },
 ];
 
 const formFields = {
@@ -40,17 +40,22 @@ const formFields = {
     { name: 'currency', label: 'Currency', type: 'select', options: ['INR', 'USD', 'EUR', 'GBP'] },
     { name: 'description', label: 'Description', type: 'text', required: true },
   ],
-  attendance: [
+  daily: [
     { name: 'date', label: 'Date', type: 'date', required: true },
-    { name: 'loginTime', label: 'Login Time', type: 'time', required: true },
-    { name: 'logoutTime', label: 'Logout Time', type: 'time', required: true },
-    { name: 'workMode', label: 'Work Mode', type: 'select', options: ['Office', 'Remote', 'Hybrid'], required: true },
-    { name: 'tasksCompleted', label: 'Tasks Completed Today', type: 'textarea' },
-    { name: 'notes', label: 'Notes', type: 'textarea' },
+    { name: 'totalCalls', label: 'Total Calls Made', type: 'number', required: true },
+    { name: 'totalEmails', label: 'Total Emails Sent', type: 'number', required: true },
+    { name: 'demos', label: 'Demos / Presentations', type: 'number' },
+    { name: 'newLeads', label: 'New Leads Generated', type: 'number' },
+    { name: 'followUps', label: 'Follow-ups Completed', type: 'number' },
+    { name: 'dealsInPipeline', label: 'Deals in Pipeline', type: 'number' },
+    { name: 'revenue', label: 'Revenue Closed (₹)', type: 'number' },
+    { name: 'highlights', label: 'Key Highlights', type: 'textarea', required: true },
+    { name: 'challenges', label: 'Challenges Faced', type: 'textarea' },
+    { name: 'planForTomorrow', label: 'Plan for Tomorrow', type: 'textarea', required: true },
   ],
 };
 
-const formLabels = { lead: 'Lead Entry', followup: 'Client Follow-up', expense: 'Expense Report', attendance: 'Attendance Entry' };
+const formLabels = { lead: 'Lead Entry', followup: 'Client Follow-up', expense: 'Expense Report', daily: 'Daily Activity Report' };
 
 export default function FormsPage() {
   const router = useRouter();
@@ -58,8 +63,49 @@ export default function FormsPage() {
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showDailyReminder, setShowDailyReminder] = useState(false);
+  const [dailySubmittedToday, setDailySubmittedToday] = useState(false);
+
+  // Check if daily report should be prompted (after 8 PM)
+  const checkDailyReport = useCallback(async () => {
+    const now = new Date();
+    const hour = now.getHours();
+    
+    if (hour >= 20) {
+      // Check if already submitted today
+      try {
+        const res = await fetch('/api/submissions?type=Daily Activity Report');
+        const data = await res.json();
+        const todayStr = now.toISOString().split('T')[0];
+        const hasToday = (data.submissions || []).some(s => {
+          const subDate = new Date(s.submittedAt).toISOString().split('T')[0];
+          return subDate === todayStr;
+        });
+        
+        if (!hasToday) {
+          setShowDailyReminder(true);
+        } else {
+          setDailySubmittedToday(true);
+        }
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    checkDailyReport();
+    // Check every 5 minutes
+    const interval = setInterval(checkDailyReport, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [checkDailyReport]);
 
   const handleChange = (name, value) => setFormData(d => ({ ...d, [name]: value }));
+
+  const openDailyReport = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setActiveForm('daily');
+    setFormData({ date: today });
+    setShowDailyReminder(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,6 +116,7 @@ export default function FormsPage() {
     });
     setLoading(false);
     setSuccess(true);
+    if (activeForm === 'daily') setDailySubmittedToday(true);
     setTimeout(() => { setSuccess(false); setActiveForm(null); setFormData({}); }, 2000);
   };
 
@@ -84,9 +131,49 @@ export default function FormsPage() {
   if (!activeForm) return (
     <div className="animate-fade">
       <h2 style={{ fontWeight: 700, fontSize: '1.3rem', marginBottom: 20 }}>📋 Forms Hub</h2>
+
+      {/* Daily Report Reminder Banner */}
+      {showDailyReminder && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(99, 102, 241, 0.1))',
+          border: '2px solid rgba(6, 182, 212, 0.3)',
+          borderRadius: 14, padding: '20px 24px', marginBottom: 24,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          animation: 'slideUp 0.3s ease',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 14,
+              background: 'linear-gradient(135deg, #06b6d4, #6366f1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.4rem', flexShrink: 0,
+            }}>📊</div>
+            <div>
+              <h3 style={{ fontWeight: 700, fontSize: '1rem', margin: 0 }}>Daily Report Due!</h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+                It&apos;s past 8 PM — please submit your Daily Activity Report before logging off.
+              </p>
+            </div>
+          </div>
+          <button onClick={openDailyReport} className="btn btn-primary" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+            📝 Submit Now
+          </button>
+        </div>
+      )}
+
+      {dailySubmittedToday && new Date().getHours() >= 20 && (
+        <div style={{
+          background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)',
+          borderRadius: 12, padding: '12px 20px', marginBottom: 24,
+          display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.88rem', color: '#059669',
+        }}>
+          ✅ Daily Activity Report already submitted for today. Great job!
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
         {formTypes.map(ft => (
-          <button key={ft.key} onClick={() => { setActiveForm(ft.key); setFormData({}); }}
+          <button key={ft.key} onClick={() => { setActiveForm(ft.key); setFormData(ft.key === 'daily' ? { date: new Date().toISOString().split('T')[0] } : {}); }}
             className="card card-glow" style={{ textAlign: 'left', border: '1px solid var(--surface-border)', cursor: 'pointer', transition: 'all 0.2s' }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: `${ft.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', marginBottom: 12 }}>{ft.icon}</div>
             <h3 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 4 }}>{ft.label}</h3>
@@ -124,15 +211,6 @@ export default function FormsPage() {
             </div>
           ))}
         </div>
-
-        {activeForm === 'attendance' && formData.loginTime && formData.logoutTime && (
-          <div style={{ padding: '12px 16px', background: 'rgba(6,182,212,0.08)', borderRadius: 10, marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontWeight: 600, color: 'var(--primary-light)' }}>⏱️ Total Hours:</span>
-            <span style={{ fontWeight: 700 }}>
-              {(() => { const [lh,lm] = formData.loginTime.split(':').map(Number); const [oh,om] = formData.logoutTime.split(':').map(Number); return ((oh*60+om-lh*60-lm)/60).toFixed(1); })()}h
-            </span>
-          </div>
-        )}
 
         <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={() => { setActiveForm(null); setFormData({}); }}>Cancel</button>
