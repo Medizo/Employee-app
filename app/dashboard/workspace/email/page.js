@@ -37,7 +37,7 @@ export default function EmailPage() {
   const syncInbox = useCallback(async () => {
     setSyncing(true);
     try {
-      const res = await fetch('/api/emails/sync');
+      const res = await fetch(`/api/emails/sync?t=${Date.now()}`);
       const d = await res.json();
       setReplies(d.replies || []);
       setUnreadCount(d.unreadCount || 0);
@@ -46,22 +46,26 @@ export default function EmailPage() {
   }, []);
 
   useEffect(() => {
-    fetch('/api/leads').then(r => r.json()).then(d => {
-      setLeads(d.leads || []);
-      // Auto-select lead from URL param ?lead=ID
-      const leadId = searchParams.get('lead');
-      if (leadId) {
-        const lead = (d.leads || []).find(l => l.id === leadId);
-        if (lead) {
-          setSelectedLead(lead);
-          setForm(f => ({ ...f, to: lead.email || '', toName: lead.contactPerson || '' }));
-          setTab('compose');
+    const loadAll = () => {
+      const ts = Date.now();
+      fetch(`/api/leads?t=${ts}`).then(r => r.json()).then(d => {
+        setLeads(d.leads || []);
+        // Auto-select lead from URL param ?lead=ID
+        const leadId = searchParams.get('lead');
+        if (leadId) {
+          const lead = (d.leads || []).find(l => l.id === leadId);
+          if (lead) {
+            setSelectedLead(lead);
+            setForm(f => ({ ...f, to: lead.email || '', toName: lead.contactPerson || '' }));
+          }
         }
-      }
-    });
-    fetch('/api/emails').then(r => r.json()).then(d => setEmails(d.emails || []));
-    syncInbox();
-    const interval = setInterval(syncInbox, 60000);
+      });
+      fetch(`/api/emails?t=${ts}`).then(r => r.json()).then(d => setEmails(d.emails || []));
+      syncInbox();
+    };
+
+    loadAll();
+    const interval = setInterval(loadAll, 15000);
     return () => clearInterval(interval);
   }, [syncInbox, searchParams]);
 

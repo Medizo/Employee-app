@@ -52,14 +52,21 @@ export default function WorkspacePage() {
   const [allReplies, setAllReplies] = useState([]);
 
   useEffect(() => {
-    fetchLeads();
-    fetch('/api/emails').then(r => r.json()).then(d => setAllEmails(d.emails || [])).catch(() => {});
-    fetch('/api/emails/sync').then(r => r.json()).then(d => setAllReplies(d.replies || [])).catch(() => {});
+    const loadAllData = () => {
+      const ts = Date.now();
+      fetch(`/api/leads?t=${ts}`).then(r => r.json()).then(d => { setLeads(d.leads || []); setLoading(false); });
+      fetch(`/api/emails?t=${ts}`).then(r => r.json()).then(d => setAllEmails(d.emails || [])).catch(() => {});
+      fetch(`/api/emails/sync?t=${ts}`).then(r => r.json()).then(d => setAllReplies(d.replies || [])).catch(() => {});
+    };
+
+    loadAllData();
+    const interval = setInterval(loadAllData, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchLeads = () => {
     setLoading(true);
-    fetch('/api/leads').then(r => r.json()).then(d => { setLeads(d.leads || []); setLoading(false); });
+    fetch(`/api/leads?t=${Date.now()}`).then(r => r.json()).then(d => { setLeads(d.leads || []); setLoading(false); });
   };
 
   const filtered = leads.filter(l => {
