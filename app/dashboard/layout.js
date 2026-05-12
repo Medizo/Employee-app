@@ -2,6 +2,7 @@
 import { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { LayoutDashboard, Briefcase, FileText, History, Trophy, CalendarDays, Lightbulb, ListTodo, Settings, ChevronLeft, LogOut, Menu, Sun, Monitor, Moon, Search, Bell, Timer, CalendarClock } from 'lucide-react';
+import logoImg from '../logo.png';
 
 const UserContext = createContext(null);
 export const useUser = () => useContext(UserContext);
@@ -322,7 +323,7 @@ export default function DashboardLayout({ children }) {
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               boxShadow: 'var(--shadow-md)', overflow: 'hidden'
             }}>
-              <img src="/logo.png" alt="Logo" style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
+              <img src={logoImg.src} alt="Logo" style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
             </div>
             {sideOpen && <span style={{ color: 'var(--text)', fontWeight: 800, fontSize: '1.15rem', letterSpacing: '-0.03em' }}>Cluso CRM</span>}
           </div>

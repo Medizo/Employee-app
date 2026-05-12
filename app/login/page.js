@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import logoImg from '../logo.png';
 import { Mail, Lock, Eye, EyeOff, Zap, ArrowRight, KeyRound } from 'lucide-react';
 
 export default function LoginPage() {
@@ -43,7 +44,7 @@ export default function LoginPage() {
         <div style={styles.card} className={shake ? 'shake-anim' : ''}>
           <div style={styles.logoSection}>
             <div style={styles.logo}>
-              <img src="/logo.png" alt="Cluso CRM Logo" style={{ height: '60px', objectFit: 'contain' }} />
+              <img src={logoImg.src} alt="Cluso CRM Logo" style={{ height: '60px', objectFit: 'contain' }} />
             </div>
             <h1 style={styles.title}>Cluso CRM Portal</h1>
             <p style={styles.subtitle}>Sign in to continue</p>
