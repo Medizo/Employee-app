@@ -133,7 +133,7 @@ export default function LoginPage() {
             <div style={styles.logo}>
               <img src={logoImg.src} alt="Cluso CRM Logo" style={{ height: '60px', objectFit: 'contain' }} />
             </div>
-            <h1 style={styles.title}>Cluso CRM Portal</h1>
+            <h1 style={styles.title}>Cluso Employee CRM Portal</h1>
             <p style={styles.subtitle}>Sign in to continue</p>
           </div>
 

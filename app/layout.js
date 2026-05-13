@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Cluso CRM Portal",
+  title: "Cluso Employee CRM Portal",
   description: "Employee CRM Portal with Lead Management, Task Tracking, and Team Performance Analytics",
   icons: {
     icon: '/logo.png',
