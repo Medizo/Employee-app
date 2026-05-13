@@ -1,16 +1,18 @@
 'use client';
 import { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, Briefcase, FileText, History, Trophy, CalendarDays, Lightbulb, ListTodo, Settings, ChevronLeft, LogOut, Menu, Sun, Monitor, Moon, Search, Bell, Timer, CalendarClock, AlertTriangle, Info, Zap, Glasses, Eye, CheckCircle2 } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileText, History, Trophy, CalendarDays, Lightbulb, ListTodo, Settings, ChevronLeft, LogOut, Menu, Sun, Monitor, Moon, Search, Bell, Timer, CalendarClock, AlertTriangle, Info, Zap, Glasses, Eye, CheckCircle2, BarChart3, PenTool } from 'lucide-react';
 import { UserContext } from './context';
 import logoImg from '../logo.png';
 
-const navItems = [
+const allNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', desc: 'Overview of your performance and active tasks' },
-  { icon: Briefcase, label: 'Workspace', path: '/dashboard/workspace', desc: 'Manage your assigned leads and email correspondence' },
+  { icon: Briefcase, label: 'Workspace', path: '/dashboard/workspace', desc: 'Manage your assigned leads and email correspondence', departments: ['Sales'] },
+  { icon: PenTool, label: 'Content Studio', path: '/dashboard/content-studio', desc: 'Create posts and auto-publish to LinkedIn & Twitter', departments: ['Marketing'] },
   { icon: FileText, label: 'Forms', path: '/dashboard/forms', desc: 'Submit daily reports, expenses, and standard forms' },
   { icon: History, label: 'History', path: '/dashboard/history', desc: 'View your past submissions and activity history' },
   { icon: Trophy, label: 'Leaderboard', path: '/dashboard/leaderboard', desc: 'See company rankings and top performers' },
+  { icon: BarChart3, label: 'Dept. Leaderboard', path: '/dashboard/dept-leaderboard', desc: 'Rankings within your department only' },
   { icon: CalendarDays, label: 'Attendance', path: '/dashboard/attendance', desc: 'View your attendance log and apply for leave' },
   { icon: Lightbulb, label: 'Suggestions', path: '/dashboard/suggestions', desc: 'Submit ideas or feedback to management' },
   { icon: ListTodo, label: 'Tasks', path: '/dashboard/tasks', desc: 'View and update your assigned tasks' },
@@ -598,7 +600,9 @@ export default function DashboardLayout({ children }) {
 
           {/* Navigation */}
           <nav style={{ flex: 1, padding: '4px 10px', overflowY: 'auto' }}>
-            {navItems.map(item => {
+            {allNavItems
+              .filter(item => !item.departments || item.departments.includes(user?.department))
+              .map(item => {
               const active = isActive(item.path);
               const Icon = item.icon;
               return (
@@ -672,7 +676,7 @@ export default function DashboardLayout({ children }) {
                 <Menu size={22} />
               </button>
               <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
-                {navItems.find(n => isActive(n.path))?.label || 'Dashboard'}
+                {allNavItems.find(n => isActive(n.path))?.label || 'Dashboard'}
               </h2>
             </div>
             <div className="header-controls" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
