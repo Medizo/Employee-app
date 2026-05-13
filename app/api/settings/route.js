@@ -9,8 +9,15 @@ export async function PUT(req) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   let body;
+  let rawPicture = undefined; // preserve full base64 before sanitization
   try {
-    body = sanitizeInput(await req.json());
+    const raw = await req.json();
+    // Extract picture before sanitization — base64 strings are huge and sanitizeInput truncates to 10KB
+    if (raw.type === 'profilePicture' && raw.picture) {
+      rawPicture = raw.picture;
+    }
+    body = sanitizeInput(raw);
+    if (rawPicture !== undefined) body.picture = rawPicture; // restore full picture
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
@@ -24,6 +31,25 @@ export async function PUT(req) {
       if (body.name) users[idx].name = sanitizeString(body.name, 100);
       if (body.phone) users[idx].phone = sanitizeString(body.phone, 20);
       break;
+    case 'profilePicture': {
+      if (!body.picture) {
+        // Remove profile picture
+        delete users[idx].profilePicture;
+        break;
+      }
+      // Validate it's a data URL
+      if (!body.picture.startsWith('data:image/')) {
+        return NextResponse.json({ error: 'Invalid image format' }, { status: 400 });
+      }
+      // Extract base64 portion and check size (300KB hard limit)
+      const base64Part = body.picture.split(',')[1] || '';
+      const sizeInBytes = Math.ceil(base64Part.length * 3 / 4);
+      if (sizeInBytes > 300 * 1024) {
+        return NextResponse.json({ error: 'Image exceeds 300KB limit' }, { status: 400 });
+      }
+      users[idx].profilePicture = body.picture;
+      break;
+    }
     case 'password':
       if (!body.newPassword || body.newPassword.length < 6) {
         return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
@@ -35,8 +61,13 @@ export async function PUT(req) {
       users[idx].notifications = body.notifications;
       break;
     case 'theme':
-      if (body.theme && ['light', 'dark', 'system'].includes(body.theme)) {
+      if (body.theme && ['light', 'dark', 'system', 'high-contrast', 'high-contrast-light'].includes(body.theme)) {
         users[idx].theme = body.theme;
+      }
+      break;
+    case 'themeColor':
+      if (body.themeColor && ['beige', 'seafoam', 'rose'].includes(body.themeColor)) {
+        users[idx].themeColor = body.themeColor;
       }
       break;
   }

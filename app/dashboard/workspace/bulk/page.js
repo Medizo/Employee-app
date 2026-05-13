@@ -20,6 +20,7 @@ const EXPECTED_COLUMNS = [
   { field: 'Priority', required: false, example: 'Medium' },
   { field: 'Notes', required: false, example: 'Interested in CRM' },
   { field: 'Next Follow-up Date', required: false, example: '2026-06-01' },
+  { field: 'Assign To Email', required: false, example: 'employee@cluso.in' },
 ];
 
 export default function BulkUploadPage() {

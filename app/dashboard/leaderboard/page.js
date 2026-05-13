@@ -23,14 +23,32 @@ export default function LeaderboardPage() {
 
   return (
     <div className="animate-fade">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(99,102,241,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Trophy size={20} color="var(--primary)" />
         </div>
         <div>
           <h2 style={{ fontWeight: 700, fontSize: '1.3rem', letterSpacing: '-0.02em' }}>Team Leaderboard</h2>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Performance rankings across the team</p>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Live performance rankings — powered by real data</p>
         </div>
+      </div>
+
+      {/* Points Legend */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+        {[
+          { icon: '🏆', label: 'Deal Closed', pts: '1,000 pts', color: '#16a34a', bg: '#f0fdf4' },
+          { icon: '📞', label: 'Call Made', pts: '100 pts', color: '#3b82f6', bg: '#eff6ff' },
+          { icon: '🔄', label: 'Follow-up', pts: '100 pts', color: '#f59e0b', bg: '#fffbeb' },
+        ].map(p => (
+          <div key={p.label} style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '6px 14px', borderRadius: 10,
+            background: p.bg, border: `1px solid ${p.color}25`,
+            fontSize: '0.78rem', fontWeight: 600, color: p.color,
+          }}>
+            <span>{p.icon}</span> {p.label} = <strong>{p.pts}</strong>
+          </div>
+        ))}
       </div>
 
       {/* My Position */}

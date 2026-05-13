@@ -53,7 +53,7 @@ export async function POST(req) {
   }
 
   // Validate leave type
-  if (!isOneOf(leaveType, ['Casual Leave', 'Sick Leave', 'Earned Leave', 'Comp Off', 'LOP'])) {
+  if (!isOneOf(leaveType, ['Casual Leave', 'Sick Leave', 'Earned Leave', 'Comp Off', 'Birthday Leave', 'LOP'])) {
     return NextResponse.json({ error: 'Invalid leave type' }, { status: 400 });
   }
 

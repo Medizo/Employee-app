@@ -3,6 +3,9 @@ import "./globals.css";
 export const metadata = {
   title: "Cluso CRM Portal",
   description: "Employee CRM Portal with Lead Management, Task Tracking, and Team Performance Analytics",
+  icons: {
+    icon: '/logo.png',
+  },
 };
 
 export default function RootLayout({ children }) {

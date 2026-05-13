@@ -2,17 +2,47 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from './context';
-import { Users, ClipboardList, Handshake, Activity, Flame, Plus, Mail, CalendarCheck, ArrowUpRight, TrendingUp, Clock } from 'lucide-react';
+import { Users, ClipboardList, Handshake, Activity, Flame, Plus, Mail, CalendarCheck, ArrowUpRight, TrendingUp, Clock, Image as ImageIcon } from 'lucide-react';
+
+const sceneries = [
+  { type: 'image', bg: 'url(/scenery/forest.png)' },
+  { type: 'image', bg: 'url(/scenery/grass.png)' },
+  { type: 'image', bg: 'url(/scenery/flower.png)' },
+  { type: 'image', bg: 'url(/scenery/ocean.png)' },
+];
 
 export default function DashboardHome() {
   const ctx = useUser();
   const user = ctx?.user;
   const [stats, setStats] = useState(null);
   const [activity, setActivity] = useState([]);
+  const [bgIndex, setBgIndex] = useState(0);
 
   useEffect(() => {
     fetch('/api/dashboard').then(r => r.json()).then(d => { setStats(d.stats); setActivity(d.activity || []); });
+    const savedBg = localStorage.getItem('welcomeBg');
+    if (savedBg) {
+      const idx = parseInt(savedBg, 10);
+      setBgIndex(idx < sceneries.length ? idx : 0);
+    }
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBgIndex(prev => {
+        const next = (prev + 1) % sceneries.length;
+        localStorage.setItem('welcomeBg', next);
+        return next;
+      });
+    }, 30000); // 30 seconds
+    return () => clearInterval(interval);
+  }, [sceneries.length]);
+
+  const changeBg = () => {
+    const next = (bgIndex + 1) % sceneries.length;
+    setBgIndex(next);
+    localStorage.setItem('welcomeBg', next);
+  };
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
@@ -35,33 +65,57 @@ export default function DashboardHome() {
     lead: '👤', task: '📋', email: '✉️', attendance: '📅', proof: '📎', submission: '📄', default: '📌'
   };
 
+  const currentBg = sceneries[bgIndex];
+
   return (
     <div className="animate-fade">
       {/* Welcome banner */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 40%, var(--primary-light) 100%)',
-        borderRadius: 20, padding: '32px 36px', marginBottom: 28, color: 'var(--primary-invert, #fff)', position: 'relative', overflow: 'hidden',
+        backgroundImage: currentBg.bg,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        borderRadius: 24, padding: '40px 48px', marginBottom: 28, 
+        color: '#fff', 
+        position: 'relative', overflow: 'hidden',
+        transition: 'background-image 1.2s ease-in-out',
+        boxShadow: 'var(--shadow-lg), inset 0 0 120px rgba(0,0,0,0.3)',
+        textShadow: '0 2px 8px rgba(0,0,0,0.4)',
       }}>
-        {/* Decorative elements */}
-        <div style={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
-        <div style={{ position: 'absolute', right: 60, bottom: -50, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
-        <div style={{ position: 'absolute', left: '30%', top: -30, width: 80, height: 80, borderRadius: '50%', background: 'rgba(244,114,182,0.12)' }} />
-        
-        <p style={{ opacity: 0.7, fontSize: '0.85rem', fontWeight: 500, marginBottom: 4, position: 'relative' }}>{greeting}</p>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: 6, position: 'relative', letterSpacing: '-0.03em' }}>
-          Welcome back, {user?.name?.split(' ')[0]} 👋
-        </h1>
-        <div style={{ display: 'flex', gap: 16, position: 'relative', flexWrap: 'wrap' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.12)', padding: '5px 14px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 500 }}>
-            {user?.department}
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.12)', padding: '5px 14px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 500 }}>
-            {user?.role}
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, opacity: 0.8, fontSize: '0.8rem', fontWeight: 500 }}>
-            <Clock size={14} /> {today}
-          </span>
+        {/* Subtle glass overlay for better text contrast */}
+        <div style={{
+          position: 'absolute', inset: 0, 
+          background: 'linear-gradient(to right, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)',
+          zIndex: 0 
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <p style={{ opacity: 0.9, fontWeight: 500, marginBottom: 8, fontSize: '0.95rem' }}>{greeting}</p>
+          <h1 style={{ fontSize: '2.4rem', fontWeight: 800, marginBottom: 12, letterSpacing: '-0.03em' }}>
+            Welcome back, {user?.name?.split(' ')[0] || 'Ahmad'} 👋
+          </h1>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(4px)', padding: '5px 14px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(255,255,255,0.2)' }}>
+              {user?.department}
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(4px)', padding: '5px 14px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(255,255,255,0.2)' }}>
+              {user?.role}
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, opacity: 0.9, fontSize: '0.8rem', fontWeight: 600 }}>
+              <Clock size={14} /> {today}
+            </span>
+          </div>
         </div>
+        
+        {/* BG Changer Button */}
+        <button onClick={changeBg} title="Change Background" style={{
+          position: 'absolute', top: 16, right: 16, width: 32, height: 32, borderRadius: '50%',
+          background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+          cursor: 'pointer', backdropFilter: 'blur(4px)', zIndex: 10, transition: 'all 0.2s',
+        }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.4)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.2)'}>
+          <ImageIcon size={16} />
+        </button>
       </div>
 
       {/* Stat cards */}

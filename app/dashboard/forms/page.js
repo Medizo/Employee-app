@@ -3,8 +3,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 const formTypes = [
+  { key: 'deal_closed', icon: '🏆', label: 'Deal Closed', desc: 'Record a closed deal (+1000 pts)', color: '#16a34a' },
   { key: 'lead', icon: '🎯', label: 'Lead Entry', desc: 'Register a new lead', color: '#8b5cf6' },
-  { key: 'followup', icon: '🔄', label: 'Client Follow-up', desc: 'Log follow-up activity', color: '#f59e0b' },
+  { key: 'followup', icon: '🔄', label: 'Client Follow-up', desc: 'Log follow-up activity (+100 pts)', color: '#f59e0b' },
   { key: 'expense', icon: '🧾', label: 'Expense Report', desc: 'Submit expense claims', color: '#ef4444' },
   { key: 'daily', icon: '📊', label: 'Daily Activity Report', desc: 'Submit your end-of-day report', color: '#06b6d4' },
 ];
@@ -53,9 +54,20 @@ const formFields = {
     { name: 'challenges', label: 'Challenges Faced', type: 'textarea' },
     { name: 'planForTomorrow', label: 'Plan for Tomorrow', type: 'textarea', required: true },
   ],
+  deal_closed: [
+    { name: 'clientName', label: 'Client / Company Name', type: 'text', required: true },
+    { name: 'contactPerson', label: 'Contact Person', type: 'text', required: true },
+    { name: 'dealValue', label: 'Deal Value (₹)', type: 'number', required: true },
+    { name: 'product', label: 'Product / Service', type: 'text', required: true },
+    { name: 'dealDate', label: 'Deal Closed Date', type: 'date', required: true },
+    { name: 'paymentTerms', label: 'Payment Terms', type: 'select', options: ['Advance', 'Net 15', 'Net 30', 'Net 60', 'Milestone Based', 'On Delivery'] },
+    { name: 'dealSource', label: 'Deal Source', type: 'select', options: ['Cold Call', 'Referral', 'Website', 'Social Media', 'LinkedIn', 'Event', 'Existing Client'] },
+    { name: 'contractDuration', label: 'Contract Duration', type: 'select', options: ['One-time', '3 Months', '6 Months', '1 Year', '2 Years', '3+ Years'] },
+    { name: 'notes', label: 'Deal Summary / Notes', type: 'textarea', required: true },
+  ],
 };
 
-const formLabels = { lead: 'Lead Entry', followup: 'Client Follow-up', expense: 'Expense Report', daily: 'Daily Activity Report' };
+const formLabels = { lead: 'Lead Entry', followup: 'Client Follow-up', expense: 'Expense Report', daily: 'Daily Activity Report', deal_closed: 'Deal Closed' };
 
 export default function FormsPage() {
   const router = useRouter();

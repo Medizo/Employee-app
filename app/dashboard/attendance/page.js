@@ -12,6 +12,8 @@ const statusConfig = {
   Weekend:        { color: '#94a3b8', icon: '⚪' },
   'Leave Pending':{ color: '#ef4444', icon: '🔶' }, // red border until approved
   'Comp Off Earned': { color: '#8b5cf6', icon: '⭐' },
+  Holiday:        { color: '#0ea5e9', icon: '🎉' },
+  Birthday:       { color: '#ec4899', icon: '🎂' },
 };
 
 /* ──────────────────────────────────────────────────────
@@ -28,6 +30,8 @@ export default function AttendancePage() {
   const [tooltip, setTooltip] = useState(null);
   const [leaveForm, setLeaveForm] = useState(null);
   const [leaveLoading, setLeaveLoading] = useState(false);
+  const [holidays, setHolidays] = useState([]);
+  const [birthdayLeave, setBirthdayLeave] = useState(null);
 
   /* ── Fetch data ── */
   const fetchData = () => {
@@ -38,6 +42,10 @@ export default function AttendancePage() {
       setCompOffsEarned(d.compOffsEarned || 0);
       setWeekendWorkDates(d.weekendWorkDates || []);
     });
+    fetch('/api/holidays').then(r => r.json()).then(d => {
+      setHolidays(d.holidays || []);
+      setBirthdayLeave(d.birthdayLeave || null);
+    }).catch(() => {});
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -73,6 +81,12 @@ export default function AttendancePage() {
       // Rejected leaves are ignored — day shows normal
     }
 
+    // 1b. Check holidays
+    const holiday = holidays.find(h => h.date === dateStr);
+    if (holiday) {
+      return { status: 'Holiday', holidayName: holiday.name, holidayType: holiday.type };
+    }
+
     // 2. Check attendance records
     const record = attendance.find(a => a.date === dateStr);
     if (record && record.status && record.status !== 'Weekend') {
@@ -81,6 +95,11 @@ export default function AttendancePage() {
         return { ...record, compOffEarned: true };
       }
       return record;
+    }
+
+    // 2b. Check birthday — is this the user's birthday?
+    if (birthdayLeave && (month + 1) === birthdayLeave.month && day === birthdayLeave.day) {
+      return { status: 'Birthday', birthdayName: birthdayLeave.name };
     }
 
     // 3. Weekend detection — ONLY Saturday (6) and Sunday (0)
@@ -99,10 +118,21 @@ export default function AttendancePage() {
     if (s?.status && summary[s.status] !== undefined) summary[s.status]++;
   }
 
-  const hoursData = attendance.filter(a => {
+  const filteredAttendance = attendance.filter(a => {
     const d = new Date(a.date);
     return d.getMonth() === month && d.getFullYear() === year && a.totalHours > 0;
   });
+
+  const aggregatedHours = filteredAttendance.reduce((acc, curr) => {
+    if (!acc[curr.date]) {
+      acc[curr.date] = { ...curr };
+    } else {
+      acc[curr.date].totalHours += curr.totalHours;
+    }
+    return acc;
+  }, {});
+
+  const hoursData = Object.values(aggregatedHours).sort((a, b) => new Date(b.date) - new Date(a.date));
   const totalHours = hoursData.reduce((s, a) => s + a.totalHours, 0);
 
   /* ── Month navigation ── */
@@ -112,11 +142,15 @@ export default function AttendancePage() {
   /* ── Click a date → open leave form (only for non-weekend, non-present days) ── */
   const handleDateClick = (day) => {
     const record = getStatus(day);
-    // Don't allow leave application on weekends or already-present days
-    if (record?.status === 'Weekend' || record?.status === 'Present' || record?.status === 'Leave Pending' || record?.status === 'On Leave') return;
+    // Don't allow leave application on weekends, holidays, or already-present days
+    if (record?.status === 'Weekend' || record?.status === 'Present' || record?.status === 'Leave Pending' || record?.status === 'On Leave' || record?.status === 'Holiday') return;
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     setLeaveForm(dateStr);
   };
+
+  // Check if current leave form date falls in birthday month
+  const isBirthdayMonth = birthdayLeave && (month + 1) === birthdayLeave.month;
+  const birthdayUsed = birthdayLeave ? leaves.some(l => l.leaveType === 'Birthday Leave' && l.status !== 'Rejected' && new Date(l.date).getFullYear() === year) : true;
 
   /* ── Submit leave ── */
   const handleLeaveSubmit = async (e) => {
@@ -173,6 +207,20 @@ export default function AttendancePage() {
       };
     }
 
+    if (record.status === 'Holiday') {
+      return {
+        background: 'rgba(14, 165, 233, 0.08)',
+        border: '2px solid rgba(14, 165, 233, 0.4)',
+      };
+    }
+
+    if (record.status === 'Birthday') {
+      return {
+        background: 'rgba(236, 72, 153, 0.08)',
+        border: '2px solid rgba(236, 72, 153, 0.4)',
+      };
+    }
+
     return {
       background: `${cfg.color}12`,
       border: `2px solid ${cfg.color}40`,
@@ -195,7 +243,7 @@ export default function AttendancePage() {
 
             {/* Legend */}
             <div style={{ display: 'flex', gap: 14, marginBottom: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
-              {['Present', 'Absent', 'On Leave', 'Leave Pending', 'Weekend'].map(label => (
+              {['Present', 'Absent', 'On Leave', 'Leave Pending', 'Holiday', 'Birthday', 'Weekend'].map(label => (
                 <span key={label} style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span style={{
                     width: 10, height: 10, borderRadius: '50%',
@@ -217,7 +265,7 @@ export default function AttendancePage() {
               {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
                 const record = getStatus(day);
                 const cellStyle = getCellStyle(record);
-                const isClickable = !record?.status || !['Weekend', 'Present', 'Leave Pending', 'On Leave', 'Half Day'].includes(record.status);
+                const isClickable = !record?.status || !['Weekend', 'Present', 'Leave Pending', 'On Leave', 'Half Day', 'Holiday'].includes(record.status);
 
                 return (
                   <div key={day}
@@ -249,6 +297,15 @@ export default function AttendancePage() {
                             <p style={{ fontWeight: 700, color: statusConfig[tooltip.status]?.color || 'var(--text)', marginBottom: 4 }}>
                               {statusConfig[tooltip.status]?.icon} {tooltip.status}
                             </p>
+                            {tooltip.holidayName && (
+                              <p style={{ fontWeight: 600, marginBottom: 4 }}>{tooltip.holidayName}</p>
+                            )}
+                            {tooltip.holidayType && (
+                              <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{tooltip.holidayType}</p>
+                            )}
+                            {tooltip.status === 'Birthday' && (
+                              <p style={{ color: '#ec4899', fontSize: '0.75rem', fontWeight: 600 }}>🎂 Happy Birthday! Click to apply birthday leave</p>
+                            )}
                             {tooltip.totalHours > 0 && (
                               <p style={{ marginBottom: 4 }}>Present for <strong>{tooltip.totalHours}h</strong></p>
                             )}
@@ -315,6 +372,55 @@ export default function AttendancePage() {
             </div>
           </div>
 
+          {/* Birthday Leave Card */}
+          {birthdayLeave && (
+            <div className="card" style={{ padding: 16, marginBottom: 16, borderLeft: '4px solid #ec4899' }}>
+              <h4 style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 8 }}>🎂 Birthday Leave</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Your Birthday</span>
+                <strong style={{ color: '#ec4899' }}>
+                  {new Date(2000, birthdayLeave.month - 1, birthdayLeave.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginTop: 4 }}>
+                <span style={{ color: 'var(--text-muted)' }}>Status</span>
+                <strong style={{ color: birthdayUsed ? '#f59e0b' : '#10b981' }}>
+                  {birthdayUsed ? 'Used / Applied' : '1 day available'}
+                </strong>
+              </div>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.4 }}>
+                You can apply birthday leave on any day in your birthday month ({new Date(2000, birthdayLeave.month - 1).toLocaleDateString('en-US', { month: 'long' })}).
+              </p>
+            </div>
+          )}
+
+          {/* Upcoming Holidays */}
+          {holidays.length > 0 && (
+            <div className="card" style={{ padding: 16, marginBottom: 16, borderLeft: '4px solid #0ea5e9' }}>
+              <h4 style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 10 }}>🎉 Upcoming Holidays</h4>
+              <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+                {holidays
+                  .filter(h => h.date >= new Date().toISOString().split('T')[0])
+                  .slice(0, 8)
+                  .map(h => (
+                    <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem', padding: '6px 0', borderBottom: '1px solid var(--surface-border)' }}>
+                      <div>
+                        <p style={{ fontWeight: 600 }}>{h.name}</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{h.type}</p>
+                      </div>
+                      <span style={{ fontSize: '0.78rem', color: '#0ea5e9', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        {new Date(h.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}
+                      </span>
+                    </div>
+                  ))
+                }
+                {holidays.filter(h => h.date >= new Date().toISOString().split('T')[0]).length === 0 && (
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No upcoming holidays</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Recent Leaves */}
           {leaves.length > 0 && (
             <div className="card" style={{ overflow: 'hidden' }}>
@@ -346,14 +452,14 @@ export default function AttendancePage() {
           {hoursData.length > 0 && (
             <div className="card" style={{ overflow: 'hidden', marginTop: 16 }}>
               <h4 style={{ fontWeight: 700, marginBottom: 12, fontSize: '0.9rem' }}>⏱️ Hours This Month</h4>
-              <div className="table-container" style={{ margin: '-24px', marginTop: 0, border: 'none', borderRadius: 0, borderTop: '1px solid var(--surface-border)' }}>
+              <div className="table-container" style={{ margin: '-24px', marginTop: 0, border: 'none', borderRadius: 0, borderTop: 'var(--border-width) solid var(--surface-border)', maxHeight: 180, overflowY: 'auto' }}>
                 <table style={{ fontSize: '0.78rem', width: '100%' }}>
-                  <thead><tr><th>Date</th><th>Hours</th><th>Mode</th></tr></thead>
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}><tr><th>Date</th><th>Hours</th><th>Mode</th></tr></thead>
                   <tbody>
                     {hoursData.map((a, idx) => (
-                      <tr key={`${a.id}-${idx}`}>
+                      <tr key={a.date || idx}>
                         <td>{new Date(a.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</td>
-                        <td><strong>{a.totalHours}h</strong></td>
+                        <td><strong>{a.totalHours.toFixed(1)}h</strong></td>
                         <td><span className="badge badge-submitted">{a.workMode}</span></td>
                       </tr>
                     ))}
@@ -388,6 +494,9 @@ export default function AttendancePage() {
                   <option value="Half Day">Half Day Leave</option>
                   {compOffBalance > 0 && (
                     <option value="Comp Off">🌟 Comp Off ({compOffBalance} available)</option>
+                  )}
+                  {isBirthdayMonth && !birthdayUsed && (
+                    <option value="Birthday Leave">🎂 Birthday Leave (1 available)</option>
                   )}
                 </select>
               </div>

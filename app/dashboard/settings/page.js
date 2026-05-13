@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '../context';
 
 export default function SettingsPage() {
@@ -12,6 +12,86 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState('');
   const [error, setError] = useState('');
+
+  const [profilePic, setProfilePic] = useState(user?.profilePicture || null);
+  const [picError, setPicError] = useState('');
+  const [picUploading, setPicUploading] = useState(false);
+
+  // Sync state when user object loads
+  useEffect(() => {
+    if (user) {
+      setProfile({ name: user.name || '', phone: user.phone || '' });
+      setNotifs(user.notifications || { email: true, taskReminders: true, leaderboard: true, attendance: true });
+      setProfilePic(user.profilePicture || null);
+    }
+  }, [user]);
+
+  const handlePicChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPicError('');
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      setPicError('Please select an image file (JPG, PNG, WebP).');
+      return;
+    }
+
+    // Check file size — show 300KB limit to user
+    if (file.size > 300 * 1024) {
+      setPicError(`File is ${(file.size / 1024).toFixed(0)}KB — maximum allowed is 300KB.`);
+      return;
+    }
+
+    // Read as data URL
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const dataUrl = ev.target.result;
+      setProfilePic(dataUrl);
+      setPicUploading(true);
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'profilePicture', picture: dataUrl }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setPicError(data.error || 'Upload failed');
+          setProfilePic(user?.profilePicture || null);
+        } else {
+          setSaved('Profile picture updated!');
+          setTimeout(() => setSaved(''), 2000);
+          // Update context
+          if (ctx?.setUser) ctx.setUser({ ...user, profilePicture: dataUrl });
+        }
+      } catch {
+        setPicError('Upload failed. Please try again.');
+        setProfilePic(user?.profilePicture || null);
+      }
+      setPicUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removePic = async () => {
+    setPicUploading(true);
+    setPicError('');
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'profilePicture', picture: null }),
+      });
+      setProfilePic(null);
+      if (ctx?.setUser) ctx.setUser({ ...user, profilePicture: null });
+      setSaved('Profile picture removed!');
+      setTimeout(() => setSaved(''), 2000);
+    } catch {
+      setPicError('Failed to remove. Try again.');
+    }
+    setPicUploading(false);
+  };
 
   const getStrength = () => {
     const p = passwords.newPw;
@@ -87,13 +167,83 @@ export default function SettingsPage() {
           {tab === 'profile' && (
             <div className="card">
               <h3 style={{ fontWeight: 700, marginBottom: 20 }}>👤 Edit Profile</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg,#06b6d4,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.5rem', fontWeight: 800 }}>{user?.name?.charAt(0)}</div>
-                <div>
-                  <p style={{ fontWeight: 700 }}>{user?.name}</p>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{user?.email}</p>
+
+              {/* Profile Picture Section */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 20, marginBottom: 28,
+                padding: 20, borderRadius: 16,
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--surface-border)',
+              }}>
+                {/* Avatar preview */}
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <div style={{
+                    width: 80, height: 80, borderRadius: '50%',
+                    background: profilePic ? `url(${profilePic}) center/cover no-repeat` : 'linear-gradient(135deg,#06b6d4,#8b5cf6)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontSize: '2rem', fontWeight: 800,
+                    border: '3px solid var(--surface-border)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                    overflow: 'hidden',
+                  }}>
+                    {!profilePic && user?.name?.charAt(0)}
+                  </div>
+                  {picUploading && (
+                    <div style={{
+                      position: 'absolute', inset: 0, borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.5)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <div style={{ width: 24, height: 24, border: '3px solid transparent', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload controls */}
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: 4 }}>{user?.name}</p>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 12 }}>{user?.email}</p>
+
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <label style={{
+                      padding: '7px 16px', borderRadius: 8,
+                      background: 'var(--primary)', color: '#fff',
+                      fontWeight: 600, fontSize: '0.8rem',
+                      cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6,
+                      transition: 'opacity 0.2s',
+                    }}>
+                      📷 {profilePic ? 'Change Photo' : 'Upload Photo'}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={handlePicChange}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                    {profilePic && (
+                      <button onClick={removePic} style={{
+                        padding: '7px 14px', borderRadius: 8,
+                        background: 'rgba(239,68,68,0.1)', color: '#ef4444',
+                        border: '1px solid rgba(239,68,68,0.2)',
+                        fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer',
+                      }}>
+                        ✕ Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 8 }}>
+                    JPG, PNG, or WebP • Max 300KB
+                  </p>
+
+                  {picError && (
+                    <p style={{ fontSize: '0.78rem', color: '#ef4444', marginTop: 6, fontWeight: 600 }}>
+                      ⚠ {picError}
+                    </p>
+                  )}
                 </div>
               </div>
+
               <div className="form-grid">
                 <div className="form-group">
                   <label className="form-label">Display Name</label>
