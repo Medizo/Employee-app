@@ -15,6 +15,8 @@ const activityTypeColors = {
   Meeting: { bg: 'rgba(249, 115, 22, 0.12)', color: '#ea580c', icon: '🤝' },
   Note: { bg: 'rgba(148, 163, 184, 0.12)', color: '#64748b', icon: '📝' },
   'Status Change': { bg: 'rgba(248, 113, 113, 0.12)', color: '#dc2626', icon: '🔄' },
+  'Admin Comment': { bg: 'rgba(239, 68, 68, 0.10)', color: '#b91c1c', icon: '💬' },
+  'Update': { bg: 'rgba(14, 165, 233, 0.10)', color: '#0284c7', icon: '✏️' },
 };
 
 const followupModes = ['Phone Call', 'Email', 'Video Call', 'In-Person Meeting', 'WhatsApp', 'LinkedIn', 'Other'];
