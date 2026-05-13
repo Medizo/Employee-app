@@ -37,7 +37,7 @@ function addSecurityHeaders(response) {
   // Content Security Policy — adjust as needed
   response.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.linkedin.com https://www.linkedin.com;"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://api.linkedin.com https://www.linkedin.com;"
   );
   // Strict Transport Security (effective when behind HTTPS/TLS termination)
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
