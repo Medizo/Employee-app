@@ -246,6 +246,45 @@ export default function WorkspacePage() {
 
                             return (
                               <>
+                                {/* Admin Notes & Comments Panel */}
+                                {(lead.notes || (lead.activities || []).some(a => a.type === 'Admin Comment')) && (
+                                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+                                    {/* Admin Notes */}
+                                    {lead.notes && (
+                                      <div style={{ flex: '1 1 280px', padding: '14px 16px', borderRadius: 12, background: 'rgba(16,185,129,0.05)', border: '1.5px solid rgba(16,185,129,0.18)' }}>
+                                        <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#059669', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                          📝 Admin Notes
+                                        </div>
+                                        <p style={{ fontSize: '0.84rem', color: 'var(--text)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>{lead.notes}</p>
+                                      </div>
+                                    )}
+
+                                    {/* Latest Admin Comments */}
+                                    {(() => {
+                                      const adminComments = (lead.activities || []).filter(a => a.type === 'Admin Comment').sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                                      if (adminComments.length === 0) return null;
+                                      return (
+                                        <div style={{ flex: '1 1 280px', padding: '14px 16px', borderRadius: 12, background: 'rgba(99,102,241,0.05)', border: '1.5px solid rgba(99,102,241,0.18)' }}>
+                                          <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6366f1', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            💬 Admin Comments ({adminComments.length})
+                                          </div>
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 140, overflowY: 'auto' }}>
+                                            {adminComments.slice(0, 5).map((c, ci) => (
+                                              <div key={ci} style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(99,102,241,0.06)', borderLeft: '3px solid #6366f1' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                                                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#6366f1' }}>{c.by || 'Admin'}</span>
+                                                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{new Date(c.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                                                </div>
+                                                <p style={{ fontSize: '0.82rem', color: 'var(--text)', margin: 0, lineHeight: 1.5 }}>{c.description}</p>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                )}
+
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                                   <h4 style={{ fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <span>📋</span> Activity History
