@@ -32,6 +32,7 @@ export async function GET() {
       followUps: 0,
       dealValue: 0,
       score: 0,
+      hideFromLeaderboard: u.hideFromLeaderboard || false,
     };
   }
 
@@ -82,7 +83,7 @@ export async function GET() {
 
   // Convert to array, compute trends, sort
   const leaderboard = Object.values(userStats)
-    .filter(u => u.score > 0 || u.dealsCount > 0 || u.callsMade > 0 || u.followUps > 0)
+    .filter(u => !u.hideFromLeaderboard && (u.score > 0 || u.dealsCount > 0 || u.callsMade > 0 || u.followUps > 0))
     .sort((a, b) => b.score - a.score)
     .map((entry, idx, arr) => ({
       ...entry,
