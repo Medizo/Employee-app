@@ -65,7 +65,7 @@ export default function EmailPage() {
     };
 
     loadAll();
-    const interval = setInterval(loadAll, 15000);
+    const interval = setInterval(loadAll, 45000);
     return () => clearInterval(interval);
   }, [syncInbox, searchParams]);
 

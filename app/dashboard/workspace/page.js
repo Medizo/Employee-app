@@ -62,7 +62,7 @@ export default function WorkspacePage() {
     };
 
     loadAllData();
-    const interval = setInterval(loadAllData, 15000);
+    const interval = setInterval(loadAllData, 45000);
     return () => clearInterval(interval);
   }, []);
 
