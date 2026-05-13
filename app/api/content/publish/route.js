@@ -8,7 +8,7 @@ import { getDb, readData } from '@/lib/db';
  * Images are uploaded directly to LinkedIn's servers — NOT stored in MongoDB.
  * 
  * Strategy:
- * 1. Try posting as the organization (company page) using the UGC API
+ * 1. Try posting as the organization (company page) using the Posts API
  * 2. If org posting fails (missing w_organization_social), fall back to personal profile
  * 
  * Body: { postId, platforms: ["linkedin"], imageBase64?: string }
@@ -117,22 +117,23 @@ async function publishToLinkedIn(db, post, imageBase64) {
   // ── Strategy: Try org first, then fall back to personal ──
   if (orgUrn) {
     try {
-      console.log(`Attempting to post as organization: ${orgUrn}`);
-      const result = await postViaUgcApi(accessToken, orgUrn, post, postText, imageBase64);
+      console.log(`[LinkedIn] Attempting to post as organization: ${orgUrn}`);
+      const result = await postViaPostsApi(accessToken, orgUrn, post, postText, imageBase64);
       result.postedAs = 'organization';
+      console.log(`[LinkedIn] ✅ Successfully posted as ORGANIZATION (Cluso InfoLink)`);
       return result;
     } catch (orgError) {
-      console.error('Organization posting failed:', orgError.message);
-      console.log('Falling back to personal profile posting...');
+      console.error(`[LinkedIn] Organization posting failed (${orgError.message}). Falling back to personal...`);
       // Fall through to personal profile posting
     }
   }
 
   // Fall back to personal profile
   if (personUrn) {
-    console.log(`Posting as personal profile: ${personUrn}`);
-    const result = await postViaUgcApi(accessToken, personUrn, post, postText, imageBase64);
+    console.log(`[LinkedIn] Posting as personal profile: ${personUrn}`);
+    const result = await postViaPostsApi(accessToken, personUrn, post, postText, imageBase64);
     result.postedAs = 'personal';
+    console.log(`[LinkedIn] ✅ Posted as PERSONAL profile (fallback)`);
     return result;
   }
 
@@ -140,103 +141,117 @@ async function publishToLinkedIn(db, post, imageBase64) {
 }
 
 /**
- * Post via the UGC Posts API (v2) — works for both person and organization authors
+ * Post via LinkedIn's REST Posts API (replaces deprecated UGC API)
+ * Docs: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api
  */
-async function postViaUgcApi(accessToken, authorUrn, post, postText, imageBase64) {
-  let imageUrn = null;
+async function postViaPostsApi(accessToken, authorUrn, post, postText, imageBase64) {
+  // LinkedIn API version — use latest active version (YYYYMM format)
+  const linkedinVersion = '202604';
+  
+  let imageId = null;
 
-  // Upload image if provided — directly to LinkedIn, NOT stored in MongoDB
+  // Upload image if provided — directly to LinkedIn via Images API
   if (imageBase64) {
-    imageUrn = await uploadImageToLinkedIn(accessToken, authorUrn, imageBase64);
+    imageId = await uploadImageViaImagesApi(accessToken, authorUrn, imageBase64, linkedinVersion);
   }
 
+  // Build the post payload per LinkedIn Posts API spec
   const payload = {
     author: authorUrn,
+    commentary: postText,
+    visibility: 'PUBLIC',
+    distribution: {
+      feedDistribution: 'MAIN_FEED',
+      targetEntities: [],
+      thirdPartyDistributionChannels: [],
+    },
     lifecycleState: 'PUBLISHED',
-    specificContent: {
-      'com.linkedin.ugc.ShareContent': {
-        shareCommentary: { text: postText },
-        shareMediaCategory: imageUrn ? 'IMAGE' : 'NONE',
-        ...(imageUrn ? {
-          media: [{
-            status: 'READY',
-            media: imageUrn,
-            title: { text: post.title },
-          }],
-        } : {}),
-      },
-    },
-    visibility: {
-      'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
-    },
+    isReshareDisabledByAuthor: false,
   };
 
-  const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+  // Add image content if uploaded
+  if (imageId) {
+    payload.content = {
+      media: {
+        title: post.title,
+        id: imageId,
+      },
+    };
+  }
+
+  console.log(`[LinkedIn] POST /rest/posts — author: ${authorUrn}, version: ${linkedinVersion}`);
+
+  const response = await fetch('https://api.linkedin.com/rest/posts', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       'X-Restli-Protocol-Version': '2.0.0',
+      'LinkedIn-Version': linkedinVersion,
     },
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error(`UGC Posts API error (author: ${authorUrn}):`, errText);
+    console.error(`[LinkedIn] Posts API error (${response.status}):`, errText);
     throw new Error(`LinkedIn post failed (${response.status}): ${errText}`);
   }
 
-  const data = await response.json();
-  return { id: data.id || 'posted' };
+  // The post ID is returned in the x-restli-id response header
+  const postId = response.headers.get('x-restli-id') || 'posted';
+  return { id: postId };
 }
 
 /**
- * Uploads an image directly to LinkedIn's servers.
+ * Uploads an image directly to LinkedIn's servers via the Images API.
  * The image is NOT stored in MongoDB — it only lives on LinkedIn.
  * 
- * Flow:
- * 1. Register an upload with LinkedIn → get uploadUrl + asset URN
+ * Flow (2-step):
+ * 1. Initialize upload → get uploadUrl + image URN
  * 2. PUT the binary image data to the uploadUrl
- * 3. Return the asset URN to reference in the post
+ * 3. Return the image URN to reference in the post
+ * 
+ * Docs: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/images-api
  */
-async function uploadImageToLinkedIn(accessToken, ownerUrn, imageBase64) {
-  // Step 1: Register upload (owner can be person or organization)
-  const registerPayload = {
-    registerUploadRequest: {
-      recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
+async function uploadImageViaImagesApi(accessToken, ownerUrn, imageBase64, linkedinVersion) {
+  // Step 1: Initialize upload
+  const initPayload = {
+    initializeUploadRequest: {
       owner: ownerUrn,
-      serviceRelationships: [{
-        relationshipType: 'OWNER',
-        identifier: 'urn:li:userGeneratedContent',
-      }],
     },
   };
 
-  const registerRes = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
+  console.log(`[LinkedIn] Initializing image upload for owner: ${ownerUrn}`);
+
+  const initRes = await fetch('https://api.linkedin.com/rest/images?action=initializeUpload', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
+      'X-Restli-Protocol-Version': '2.0.0',
+      'LinkedIn-Version': linkedinVersion,
     },
-    body: JSON.stringify(registerPayload),
+    body: JSON.stringify(initPayload),
   });
 
-  if (!registerRes.ok) {
-    const errText = await registerRes.text();
-    throw new Error(`Image register failed (${registerRes.status}): ${errText}`);
+  if (!initRes.ok) {
+    const errText = await initRes.text();
+    console.error(`[LinkedIn] Image init failed (${initRes.status}):`, errText);
+    throw new Error(`Image upload init failed (${initRes.status}): ${errText}`);
   }
 
-  const registerData = await registerRes.json();
-  const uploadUrl = registerData.value?.uploadMechanism?.['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']?.uploadUrl;
-  const asset = registerData.value?.asset;
+  const initData = await initRes.json();
+  const uploadUrl = initData.value?.uploadUrl;
+  const imageUrn = initData.value?.image;
 
-  if (!uploadUrl || !asset) {
-    throw new Error('Failed to get upload URL from LinkedIn');
+  if (!uploadUrl || !imageUrn) {
+    throw new Error('Failed to get upload URL from LinkedIn Images API');
   }
+
+  console.log(`[LinkedIn] Got upload URL, image URN: ${imageUrn}`);
 
   // Step 2: Convert base64 to binary and upload
-  // Strip the data URL prefix if present (e.g., "data:image/png;base64,")
   const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
   const binaryData = Buffer.from(base64Data, 'base64');
 
@@ -253,6 +268,6 @@ async function uploadImageToLinkedIn(accessToken, ownerUrn, imageBase64) {
     throw new Error(`Image upload failed (${uploadRes.status})`);
   }
 
-  // Return the asset URN to use in the post
-  return asset;
+  console.log(`[LinkedIn] ✅ Image uploaded successfully: ${imageUrn}`);
+  return imageUrn;
 }

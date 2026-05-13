@@ -204,7 +204,19 @@ export default function ContentStudioPage() {
 
           {publishResult && (
             <div style={{ marginTop: 16, padding: 14, borderRadius: 10, background: publishResult.success ? '#f0fdf4' : '#fef2f2', border: `1px solid ${publishResult.success ? '#bbf7d0' : '#fecaca'}` }}>
-              <p style={{ fontWeight: 700, fontSize: '0.85rem', color: publishResult.success ? '#16a34a' : '#ef4444', marginBottom: 4 }}>{publishResult.success ? '✅ Published successfully to LinkedIn!' : '⚠️ Publishing had issues'}</p>
+              <p style={{ fontWeight: 700, fontSize: '0.85rem', color: publishResult.success ? '#16a34a' : '#ef4444', marginBottom: 4 }}>{publishResult.success ? '✅ Published successfully!' : '⚠️ Publishing had issues'}</p>
+              {publishResult.results?.linkedin?.posted && (
+                <p style={{ fontSize: '0.78rem', color: publishResult.results.linkedin.postedAs === 'organization' ? '#16a34a' : '#d97706', fontWeight: 600, marginBottom: 2 }}>
+                  {publishResult.results.linkedin.postedAs === 'organization' 
+                    ? '🏢 Posted to Cluso InfoLink company page' 
+                    : '⚠️ Posted to personal profile (org permissions pending — see below)'}
+                </p>
+              )}
+              {publishResult.results?.linkedin?.posted && publishResult.results.linkedin.postedAs === 'personal' && (
+                <p style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 4, lineHeight: 1.5 }}>
+                  To post to the Cluso InfoLink page, enable the <strong>Community Management API</strong> on a new LinkedIn Developer App.
+                </p>
+              )}
               {publishResult.errors?.map((e, i) => <p key={i} style={{ fontSize: '0.78rem', color: '#ef4444' }}>• {e}</p>)}
             </div>
           )}
@@ -215,10 +227,10 @@ export default function ContentStudioPage() {
           <h4 style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}><Eye size={14} /> LinkedIn Preview</h4>
           <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #0077b5, #0a66c2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.85rem' }}>{ctx?.user?.name?.charAt(0) || 'C'}</div>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #0077b5, #0a66c2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.85rem' }}>C</div>
               <div>
-                <p style={{ fontWeight: 600, fontSize: '0.85rem', color: '#000' }}>{linkedin.name || ctx?.user?.name || 'Company'}</p>
-                <p style={{ fontSize: '0.7rem', color: '#666' }}>Just now · <Share2 size={10} style={{ verticalAlign: 'middle' }} /></p>
+                <p style={{ fontWeight: 600, fontSize: '0.85rem', color: '#000' }}>Cluso InfoLink</p>
+                <p style={{ fontSize: '0.7rem', color: '#666' }}>430 followers · Just now · <Share2 size={10} style={{ verticalAlign: 'middle' }} /></p>
               </div>
             </div>
             <div style={{ padding: '0 16px 14px' }}>
