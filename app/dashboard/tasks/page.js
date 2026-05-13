@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { ListTodo, Clock, RotateCcw, CheckCircle2, AlertTriangle, Play, Check, MessageSquare, Send, X, Calendar, Paperclip } from 'lucide-react';
+import { ListTodo, Clock, RotateCcw, CheckCircle2, AlertTriangle, Play, Check, MessageSquare, Send, X, Calendar, Paperclip, Download } from 'lucide-react';
 
 const priorityOrder = { Urgent: 0, High: 1, Medium: 2, Low: 3 };
 
@@ -37,6 +37,20 @@ export default function TasksPage() {
     const reader = new FileReader();
     reader.onload = (event) => setProofFile(event.target.result);
     reader.readAsDataURL(file);
+  };
+
+  const downloadAdminAttachment = async (taskId, filename) => {
+    try {
+      const res = await fetch(`/api/tasks/attachment?taskId=${taskId}`);
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Attachment not found or expired'); return; }
+      const link = document.createElement('a');
+      link.href = `data:${data.contentType};base64,${data.base64Data}`;
+      link.download = data.filename || filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch { alert('Failed to download attachment'); }
   };
 
   const addComment = async () => {
@@ -170,6 +184,28 @@ export default function TasksPage() {
                 <span style={{ color: 'var(--text-muted)' }}>Deadline:</span> {new Date(detail.deadline).toLocaleDateString()}
               </div>
             </div>
+
+            {/* Admin-attached file */}
+            {detail.hasAttachment && (
+              <div style={{ marginBottom: 20, padding: '12px 14px', background: 'rgba(99,102,241,0.06)', borderRadius: 10, border: '1px solid rgba(99,102,241,0.15)' }}>
+                <p style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Paperclip size={14} color="#6366f1" /> Task Attachment from Admin
+                </p>
+                <button
+                  onClick={() => downloadAdminAttachment(detail.id, detail.attachmentName)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)',
+                    borderRadius: 8, padding: '8px 14px', cursor: 'pointer',
+                    color: '#6366f1', fontSize: '0.82rem', fontWeight: 600, transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.18)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(99,102,241,0.1)'}
+                >
+                  <Download size={14} /> {detail.attachmentName || 'Download Attachment'}
+                </button>
+              </div>
+            )}
 
             {detail.status === 'In Progress' && (
                <div style={{ marginBottom: 20, background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: 10 }}>
