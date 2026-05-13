@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import { readData, writeData, getDb } from '@/lib/db';
 import { sanitizeInput, sanitizeString, isOneOf } from '@/lib/sanitize';
 import { v4 as uuid } from 'uuid';
+import { sendTaskEmail } from '@/lib/mailer';
 
 export async function GET() {
   const session = await getSession();
@@ -86,7 +87,7 @@ export async function PUT(req) {
       const base64Part = rawProof.split(',')[1] || rawProof;
       const contentType = rawProof.match(/^data:([^;]+)/)?.[1] || 'application/octet-stream';
       const ext = contentType.split('/')[1] || 'bin';
-      const filename = `completion_proof_${tasks[idx].id}.${ext}`;
+      const filename = `completion_proof_${target.id}.${ext}`;
 
       // Upsert: replace any existing proof for this task
       await db.collection('task_attachments').updateOne(
@@ -124,5 +125,77 @@ export async function PUT(req) {
   }
 
   const updatedTask = await db.collection('tasks').findOne({ id: body.id });
+
+  // If task is completed, send email to admin(s)
+  if (body.status === 'Completed') {
+    try {
+      const admins = await db.collection('users').find({ role: { $in: ['System Admin', 'Super Admin'] } }).toArray();
+      const adminEmails = admins.map(a => a.email).filter(Boolean);
+      
+      if (adminEmails.length > 0) {
+        let attachmentPayload = undefined;
+        
+        // If there's a proof newly uploaded or already exists
+        if (rawProof && rawProof.startsWith('data:')) {
+          const base64Part = rawProof.split(',')[1] || rawProof;
+          const contentType = rawProof.match(/^data:([^;]+)/)?.[1] || 'application/octet-stream';
+          const ext = contentType.split('/')[1] || 'bin';
+          attachmentPayload = {
+            filename: `completion_proof_${target.id}.${ext}`,
+            contentType,
+            base64Data: base64Part,
+          };
+        } else if (updatedTask.hasCompletionProof) {
+          // If proof was uploaded previously, fetch it from DB
+          const existingProof = await db.collection('task_attachments').findOne({ taskId: target.id, type: 'completion_proof' });
+          if (existingProof) {
+            attachmentPayload = {
+              filename: existingProof.filename,
+              contentType: existingProof.contentType,
+              base64Data: existingProof.base64Data,
+            };
+          }
+        }
+
+        const htmlBody = `
+          <div style="font-family: 'Segoe UI', Calibri, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fafafa; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
+            <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 28px 32px; color: #fff;">
+              <h1 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 700;">✅ Task Completed</h1>
+              <p style="margin: 0; opacity: 0.85; font-size: 14px;">An employee has marked their task as completed.</p>
+            </div>
+            <div style="padding: 28px 32px;">
+              <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #111827;">${target.title}</h2>
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-size: 13px; width: 120px;">Completed By</td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #111827; font-size: 14px;">${session.name || session.email}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-size: 13px;">Time</td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #111827; font-size: 14px;">${new Date().toLocaleString('en-IN')}</td>
+                </tr>
+              </table>
+              <p style="font-size: 13px; color: #6b7280; margin: 20px 0 0 0;">Please log in to the Admin Portal to review the completion proof.</p>
+            </div>
+          </div>
+        `;
+
+        // Send email to the first admin (or iterate)
+        // Here we can send to all admins, or just the first primary admin.
+        for (const email of adminEmails) {
+          await sendTaskEmail({
+            to: email,
+            toName: 'Admin',
+            subject: `✅ Task Completed: ${target.title}`,
+            htmlBody,
+            attachment: attachmentPayload
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to send completion email:', err);
+    }
+  }
+
   return NextResponse.json({ task: updatedTask });
 }
