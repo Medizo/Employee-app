@@ -11,6 +11,7 @@ export default function TasksPage() {
   const [detail, setDetail] = useState(null);
   const [comment, setComment] = useState('');
   const [proofFile, setProofFile] = useState(null);
+  const [proofPreview, setProofPreview] = useState(null); // { src, filename, contentType }
 
   useEffect(() => { fetchTasks(); }, []);
   const fetchTasks = () => fetch('/api/tasks').then(r => r.json()).then(d => setTasks(d.tasks || []));
@@ -51,6 +52,19 @@ export default function TasksPage() {
       link.click();
       document.body.removeChild(link);
     } catch { alert('Failed to download attachment'); }
+  };
+
+  const loadCompletionProof = async (taskId) => {
+    try {
+      const res = await fetch(`/api/tasks/proof?taskId=${taskId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setProofPreview({
+        src: `data:${data.contentType};base64,${data.base64Data}`,
+        filename: data.filename,
+        contentType: data.contentType,
+      });
+    } catch { }
   };
 
   const addComment = async () => {
@@ -129,7 +143,7 @@ export default function TasksPage() {
             borderLeft: `4px solid ${priorityColors[t.priority] || '#6366f1'}`,
             transition: 'all 0.15s',
           }}
-            onClick={() => setDetail(t)}
+            onClick={() => { setDetail(t); setProofPreview(null); }}
             onMouseEnter={e => e.currentTarget.style.transform = 'translateX(4px)'}
             onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
@@ -216,15 +230,43 @@ export default function TasksPage() {
                </div>
             )}
 
-            {detail.completionProof && (
+            {/* Completion Proof from MongoDB */}
+            {(detail.hasCompletionProof || detail.completionProof) && (
                <div style={{ marginBottom: 20, padding: '12px 14px', background: 'var(--bg-secondary)', borderRadius: 10 }}>
                  <p style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Paperclip size={14} /> Attached Work
                  </p>
-                 {detail.completionProof.startsWith('data:image') ? (
+                 {/* Old inline proof (backward compat) */}
+                 {detail.completionProof && detail.completionProof.startsWith('data:image') ? (
                     <img src={detail.completionProof} alt="Proof" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }} />
-                 ) : (
+                 ) : detail.completionProof && detail.completionProof.startsWith('data:') ? (
                     <a href={detail.completionProof} download="Attachment" style={{ fontSize: '0.85rem', color: 'var(--primary)', textDecoration: 'underline' }}>Download Attachment</a>
+                 ) : (
+                    /* New MongoDB-backed proof */
+                    <>
+                      {proofPreview ? (
+                        proofPreview.contentType?.startsWith('image/') ? (
+                          <img src={proofPreview.src} alt="Proof" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, marginBottom: 8 }} />
+                        ) : (
+                          <a href={proofPreview.src} download={proofPreview.filename} style={{ fontSize: '0.85rem', color: 'var(--primary)', textDecoration: 'underline' }}>
+                            <Download size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                            {proofPreview.filename}
+                          </a>
+                        )
+                      ) : (
+                        <button
+                          onClick={() => loadCompletionProof(detail.id)}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)',
+                            borderRadius: 8, padding: '8px 14px', cursor: 'pointer',
+                            color: '#10b981', fontSize: '0.82rem', fontWeight: 600,
+                          }}
+                        >
+                          <Download size={14} /> View / Download Proof
+                        </button>
+                      )}
+                    </>
                  )}
                </div>
             )}
