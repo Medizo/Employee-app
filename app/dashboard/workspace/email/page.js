@@ -1,9 +1,11 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { UserContext } from '../../context';
 
 export default function EmailPage() {
+  const { user } = useContext(UserContext);
   const searchParams = useSearchParams();
   const [leads, setLeads] = useState([]);
   const [emails, setEmails] = useState([]);
@@ -29,12 +31,12 @@ export default function EmailPage() {
   const [showAiPanel, setShowAiPanel] = useState(false);
 
   const templates = {
-    'Follow-up': { subject: 'Following Up - {company}', body: 'Hi {name},\n\nJust following up on our previous conversation. Would you be available for a quick call this week?\n\nLooking forward to hearing from you.\n\nBest regards' },
-    'Introduction': { subject: 'Introduction - Our Services', body: 'Hello {name},\n\nIt was great connecting with you. I wanted to introduce our company and how we can help {company} achieve its goals.\n\nWould love to schedule a brief meeting at your convenience.\n\nBest regards' },
-    'Proposal': { subject: 'Proposal - {company}', body: 'Dear {name},\n\nPlease find attached our proposal for {company}. We have carefully tailored it based on our discussions.\n\nPlease let us know if you have any questions.\n\nWarm regards' },
-    'Hiring Process': { subject: 'Quick thought regarding your hiring process', body: 'Hi {name},\n\nI was going through {company} and noticed your team is actively growing.\n\nOne thing many growing companies quietly struggle with is hiring speed vs hiring trust. In fast hiring, small gaps in candidate information often go unnoticed until much later.\n\nThat’s exactly why companies are now adding background verification before onboarding.\n\nAt Cluso Infolink, we help businesses verify employment, education, identity, and other key details without making the hiring process complicated for HR teams.\n\nNot sure if this is something you currently use, but would you be open to a quick 10-minute discussion to see if it could help your hiring process?\n\nReply with “Sure” and I’ll coordinate accordingly.\n\nRegards,\n[Your Name]' },
-    'Bad Hire': { subject: 'Many companies realise this only after a bad hire', body: 'Hi {name},\n\nMost companies don’t think much about background verification… until one wrong hire creates operational or trust issues internally.\n\nInterestingly, many Indian companies are now quietly making employee verification a standard hiring step — especially for customer-facing and sensitive roles.\n\nAt Cluso Infolink, we help teams conduct simple and reliable background checks that reduce hiring risks without slowing recruitment.\n\nI felt this might be relevant for {company}, considering how competitive hiring has become lately.\n\nWould it make sense to share a quick overview of how companies are using this today?\n\nHappy to send details if you\'re interested.\n\nBest,\n[Your Name]' },
-    'Small Question': { subject: 'Small question for you', body: 'Hi {name},\n\nWanted to ask — do you currently verify candidate backgrounds before onboarding?\n\nA lot of companies still depend only on resumes/interviews, but we’re seeing more businesses add verification checks to avoid hiring surprises later.\n\nAt Cluso Infolink, we make the process quick and simple for HR teams.\n\nNot trying to sell anything over email — just thought this could be useful for your team at {company}.\n\nOpen to a quick conversation sometime this week?\n\nRegards,\n[Your Name]' },
+    'Follow-up': { subject: 'Following Up - {company}', body: 'Hi {name},\n\nJust following up on our previous conversation. Would you be available for a quick call this week?\n\nLooking forward to hearing from you.\n\nBest regards,\n{employee_name}\nCluso Infolink' },
+    'Introduction': { subject: 'Introduction - Our Services', body: 'Hello {name},\n\nIt was great connecting with you. I wanted to introduce our company and how we can help {company} achieve its goals.\n\nWould love to schedule a brief meeting at your convenience.\n\nBest regards,\n{employee_name}\nCluso Infolink' },
+    'Proposal': { subject: 'Proposal - {company}', body: 'Dear {name},\n\nPlease find attached our proposal for {company}. We have carefully tailored it based on our discussions.\n\nPlease let us know if you have any questions.\n\nWarm regards,\n{employee_name}\nCluso Infolink' },
+    'Hiring Process': { subject: 'Quick thought regarding your hiring process', body: 'Hi {name},\n\nI was going through {company} and noticed your team is actively growing.\n\nOne thing many growing companies quietly struggle with is hiring speed vs hiring trust. In fast hiring, small gaps in candidate information often go unnoticed until much later.\n\nThat’s exactly why companies are now adding background verification before onboarding.\n\nAt Cluso Infolink, we help businesses verify employment, education, identity, and other key details without making the hiring process complicated for HR teams.\n\nNot sure if this is something you currently use, but would you be open to a quick 10-minute discussion to see if it could help your hiring process?\n\nReply with “Sure” and I’ll coordinate accordingly.\n\nRegards,\n{employee_name}\nCluso Infolink' },
+    'Bad Hire': { subject: 'Many companies realise this only after a bad hire', body: 'Hi {name},\n\nMost companies don’t think much about background verification… until one wrong hire creates operational or trust issues internally.\n\nInterestingly, many Indian companies are now quietly making employee verification a standard hiring step — especially for customer-facing and sensitive roles.\n\nAt Cluso Infolink, we help teams conduct simple and reliable background checks that reduce hiring risks without slowing recruitment.\n\nI felt this might be relevant for {company}, considering how competitive hiring has become lately.\n\nWould it make sense to share a quick overview of how companies are using this today?\n\nHappy to send details if you\'re interested.\n\nBest,\n{employee_name}\nCluso Infolink' },
+    'Small Question': { subject: 'Small question for you', body: 'Hi {name},\n\nWanted to ask — do you currently verify candidate backgrounds before onboarding?\n\nA lot of companies still depend only on resumes/interviews, but we’re seeing more businesses add verification checks to avoid hiring surprises later.\n\nAt Cluso Infolink, we make the process quick and simple for HR teams.\n\nNot trying to sell anything over email — just thought this could be useful for your team at {company}.\n\nOpen to a quick conversation sometime this week?\n\nRegards,\n{employee_name}\nCluso Infolink' },
   };
 
   const syncInbox = useCallback(async () => {
@@ -105,7 +107,7 @@ export default function EmailPage() {
     if (!t) return;
     const lead = selectedLead;
     const subject = t.subject.replace('{company}', lead?.companyName || '').replace('{name}', lead?.contactPerson || '');
-    const body = t.body.replace(/{company}/g, lead?.companyName || '').replace(/{name}/g, lead?.contactPerson || '');
+    const body = t.body.replace(/{company}/g, lead?.companyName || '').replace(/{name}/g, lead?.contactPerson || '').replace(/{employee_name}/g, user?.name || 'Employee');
     setForm({ ...form, subject, body, template: name });
   };
 
