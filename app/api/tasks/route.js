@@ -55,21 +55,28 @@ export async function PUT(req) {
   delete rawBody.completionProof;
   const body = sanitizeInput(rawBody);
 
-  const tasks = await readData('tasks');
-  const idx = tasks.findIndex(t => t.id === body.id && t.userId === session.id);
-  if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  const db = await getDb();
+  const target = await db.collection('tasks').findOne({ id: body.id, userId: session.id });
+  if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  const updateFields = {};
   if (body.status && isOneOf(body.status, ['Pending', 'In Progress', 'Completed'])) {
-    tasks[idx].status = body.status;
+    updateFields.status = body.status;
   }
+  
+  const updateDoc = {};
+  if (Object.keys(updateFields).length > 0) {
+    updateDoc.$set = updateFields;
+  }
+  
   if (body.newComment) {
-    if (!tasks[idx].comments) tasks[idx].comments = [];
-    tasks[idx].comments.push({
+    const newComment = {
       id: uuid(),
       text: sanitizeString(body.newComment, 1000),
       timestamp: new Date().toISOString(),
       by: session.id,
-    });
+    };
+    updateDoc.$push = { comments: newComment };
   }
 
   // Store completion proof in MongoDB instead of JSON
@@ -83,10 +90,10 @@ export async function PUT(req) {
 
       // Upsert: replace any existing proof for this task
       await db.collection('task_attachments').updateOne(
-        { taskId: tasks[idx].id, type: 'completion_proof' },
+        { taskId: target.id, type: 'completion_proof' },
         {
           $set: {
-            taskId: tasks[idx].id,
+            taskId: target.id,
             type: 'completion_proof',
             filename,
             contentType,
@@ -99,17 +106,23 @@ export async function PUT(req) {
         { upsert: true }
       );
 
-      // Set flag in JSON (no base64 blob)
-      tasks[idx].hasCompletionProof = true;
-      tasks[idx].completionProofName = filename;
-      // Remove old inline proof if any
-      delete tasks[idx].completionProof;
+      // Set flag in MongoDB (no base64 blob)
+      if (!updateDoc.$set) updateDoc.$set = {};
+      updateDoc.$set.hasCompletionProof = true;
+      updateDoc.$set.completionProofName = filename;
+      
+      if (!updateDoc.$unset) updateDoc.$unset = {};
+      updateDoc.$unset.completionProof = "";
     } catch (err) {
       console.error('Failed to store completion proof:', err);
       return NextResponse.json({ error: 'Failed to upload proof' }, { status: 500 });
     }
   }
 
-  await writeData('tasks', tasks);
-  return NextResponse.json({ task: tasks[idx] });
+  if (Object.keys(updateDoc).length > 0) {
+    await db.collection('tasks').updateOne({ id: body.id }, updateDoc);
+  }
+
+  const updatedTask = await db.collection('tasks').findOne({ id: body.id });
+  return NextResponse.json({ task: updatedTask });
 }
