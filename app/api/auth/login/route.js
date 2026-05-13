@@ -91,9 +91,18 @@ export async function POST(request) {
       console.error('Auto clock-in error (non-fatal):', clockErr);
     }
 
+    try {
+      const db = await getDb();
+      const settings = await db.collection('user_settings').findOne({ userId: user.id });
+      if (settings?.themeMode) user.theme = settings.themeMode;
+      if (settings?.themeColor) user.themeColor = settings.themeColor;
+    } catch (err) {
+      console.error('Failed to load user settings from Mongo:', err);
+    }
+
     return NextResponse.json({
       success: true,
-      user: { id: user.id, name: user.name, email: user.email, department: user.department, role: user.role, avatar: user.avatar, theme: user.theme }
+      user: { id: user.id, name: user.name, email: user.email, department: user.department, role: user.role, avatar: user.avatar, theme: user.theme, themeColor: user.themeColor }
     });
   } catch (error) {
     console.error('Login error:', error);

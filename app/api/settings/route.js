@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { readData, writeData } from '@/lib/db';
+import { readData, writeData, getDb } from '@/lib/db';
 import { sanitizeInput, sanitizeString } from '@/lib/sanitize';
 import bcrypt from 'bcryptjs';
 
@@ -63,11 +63,23 @@ export async function PUT(req) {
     case 'theme':
       if (body.theme && ['light', 'dark', 'system', 'high-contrast', 'high-contrast-light'].includes(body.theme)) {
         users[idx].theme = body.theme;
+        const db = await getDb();
+        await db.collection('user_settings').updateOne(
+          { userId: session.id },
+          { $set: { themeMode: body.theme, updatedAt: new Date().toISOString() } },
+          { upsert: true }
+        );
       }
       break;
     case 'themeColor':
       if (body.themeColor && ['beige', 'seafoam', 'rose'].includes(body.themeColor)) {
         users[idx].themeColor = body.themeColor;
+        const db = await getDb();
+        await db.collection('user_settings').updateOne(
+          { userId: session.id },
+          { $set: { themeColor: body.themeColor, updatedAt: new Date().toISOString() } },
+          { upsert: true }
+        );
       }
       break;
   }
