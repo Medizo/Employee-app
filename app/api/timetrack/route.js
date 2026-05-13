@@ -209,7 +209,7 @@ async function syncAttendance(userId, dateStr, timeCol, attCol) {
   const loginTimeStr = earliestLogin.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
   const logoutTimeStr = latestLogout.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-  const status = totalHours >= 4 ? 'Present' : totalHours > 0 ? 'Half Day' : 'Absent';
+  const status = totalHours > 6 ? 'Present' : totalHours > 3 ? 'Half Day' : 'Absent';
 
   // Upsert into attendance collection
   const existing = await attCol.findOne({ userId, date: dateStr });
