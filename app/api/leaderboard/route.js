@@ -14,9 +14,10 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   // Load all relevant data
-  const [submissions, users] = await Promise.all([
-    readData('submissions'),
-    readData('users'),
+  const [submissions, users, deductions] = await Promise.all([
+    readData('submissions').catch(() => []),
+    readData('users').catch(() => []),
+    readData('deductions').catch(() => []), // gracefully handle if deductions collection doesn't exist yet
   ]);
 
   // Build per-user stats from real submissions
@@ -38,6 +39,12 @@ export async function GET() {
 
   // Process all submissions
   for (const sub of submissions) {
+    // Ignore rejected forms from leaderboard scoring
+    if (sub.status === 'Rejected') continue;
+    
+    // Deal Closed forms must be explicitly Approved to count
+    if (sub.formType === 'Deal Closed' && sub.status !== 'Approved') continue;
+
     const uid = sub.userId;
     if (!userStats[uid]) {
       // User exists in submissions but not in users (shouldn't happen, but handle)
@@ -78,6 +85,16 @@ export async function GET() {
 
       default:
         break;
+    }
+  }
+
+  // Process deductions
+  if (deductions && deductions.length > 0) {
+    for (const ded of deductions) {
+      const uid = ded.employeeId;
+      if (userStats[uid]) {
+        userStats[uid].score -= (Number(ded.points) || 0);
+      }
     }
   }
 
