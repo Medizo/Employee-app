@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from './context';
-import { Users, ClipboardList, Handshake, Activity, Flame, Plus, Mail, CalendarCheck, ArrowUpRight, TrendingUp, Clock, Image as ImageIcon } from 'lucide-react';
+import { Users, ClipboardList, Handshake, Activity, Flame, Plus, Mail, CalendarCheck, ArrowUpRight, TrendingUp, Clock, Image as ImageIcon, FileBarChart } from 'lucide-react';
 
 const sceneries = [
   { type: 'image', bg: 'url(/scenery/forest.png)' },
@@ -58,6 +58,7 @@ export default function DashboardHome() {
   const quickActions = [
     { icon: Plus, label: 'Add Lead', href: '/dashboard/workspace/add', desc: 'Create new contact', gradient: 'linear-gradient(135deg, #6366f1, #818cf8)' },
     { icon: Mail, label: 'Compose Email', href: '/dashboard/workspace/email', desc: 'Send to leads', gradient: 'linear-gradient(135deg, #f472b6, #f9a8d4)' },
+    { icon: FileBarChart, label: 'Submit DAR', href: '/dashboard/forms?type=daily', desc: 'Daily Activity Report', gradient: 'linear-gradient(135deg, #06b6d4, #22d3ee)' },
     { icon: CalendarCheck, label: 'Attendance', href: '/dashboard/attendance', desc: 'View your hours', gradient: 'linear-gradient(135deg, #34d399, #6ee7b7)' },
   ];
 

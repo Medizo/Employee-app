@@ -70,6 +70,9 @@ const formFields = {
 
 const formLabels = { lead: 'Lead Entry', followup: 'Client Follow-up', expense: 'Expense Report', daily: 'Daily Activity Report', deal_closed: 'Deal Closed' };
 
+// Fields that can be auto-populated from tracked activity
+const autoFillableFields = ['totalCalls', 'totalEmails', 'demos', 'newLeads', 'followUps', 'dealsInPipeline', 'revenue'];
+
 function FormsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -80,6 +83,11 @@ function FormsContent() {
   const [success, setSuccess] = useState(false);
   const [showDailyReminder, setShowDailyReminder] = useState(false);
   const [dailySubmittedToday, setDailySubmittedToday] = useState(false);
+
+  // DAR auto-fill state
+  const [darAutoFilled, setDarAutoFilled] = useState({}); // which fields were auto-filled
+  const [darBreakdown, setDarBreakdown] = useState(null); // breakdown data for transparency
+  const [darAutoLoading, setDarAutoLoading] = useState(false);
 
   // Check if daily report should be prompted (after 8 PM)
   const checkDailyReport = useCallback(async () => {
@@ -120,9 +128,13 @@ function FormsContent() {
     const type = searchParams.get('type');
     const leadId = searchParams.get('leadId');
     if (type && formTypes.some(f => f.key === type)) {
-      setActiveForm(type);
-      if (leadId) {
-        setFormData(prev => ({ ...prev, leadId }));
+      if (type === 'daily') {
+        openDailyReport();
+      } else {
+        setActiveForm(type);
+        if (leadId) {
+          setFormData(prev => ({ ...prev, leadId }));
+        }
       }
     }
   }, [searchParams]);
@@ -142,11 +154,42 @@ function FormsContent() {
 
   const handleChange = (name, value) => setFormData(d => ({ ...d, [name]: value }));
 
+  // Fetch auto-fill data for DAR
+  const fetchDarAutoFill = useCallback(async (dateStr) => {
+    setDarAutoLoading(true);
+    try {
+      const res = await fetch(`/api/dar-autofill?localDate=${dateStr}`);
+      const data = await res.json();
+      if (data.autofill) {
+        const autoData = data.autofill;
+        const filled = {};
+        const newFormData = { date: dateStr };
+        for (const key of autoFillableFields) {
+          if (autoData[key] !== undefined && autoData[key] !== null) {
+            newFormData[key] = String(autoData[key]);
+            if (Number(autoData[key]) > 0) {
+              filled[key] = true;
+            }
+          }
+        }
+        setFormData(prev => ({ ...prev, ...newFormData }));
+        setDarAutoFilled(filled);
+        setDarBreakdown(data.breakdown || null);
+      }
+    } catch (err) {
+      console.error('DAR autofill error:', err);
+    }
+    setDarAutoLoading(false);
+  }, []);
+
   const openDailyReport = () => {
     const today = new Date().toISOString().split('T')[0];
     setActiveForm('daily');
     setFormData({ date: today });
+    setDarAutoFilled({});
+    setDarBreakdown(null);
     setShowDailyReminder(false);
+    fetchDarAutoFill(today);
   };
 
   const handleSubmit = async (e) => {
@@ -215,7 +258,16 @@ function FormsContent() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
         {formTypes.map(ft => (
-          <button key={ft.key} onClick={() => { setActiveForm(ft.key); setFormData(ft.key === 'daily' ? { date: new Date().toISOString().split('T')[0] } : {}); }}
+          <button key={ft.key} onClick={() => {
+              if (ft.key === 'daily') {
+                openDailyReport();
+              } else {
+                setActiveForm(ft.key);
+                setFormData({});
+                setDarAutoFilled({});
+                setDarBreakdown(null);
+              }
+            }}
             className="card card-glow" style={{ textAlign: 'left', border: '1px solid var(--surface-border)', cursor: 'pointer', transition: 'all 0.2s' }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: `${ft.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', marginBottom: 12 }}>{ft.icon}</div>
             <h3 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 4 }}>{ft.label}</h3>
@@ -231,15 +283,75 @@ function FormsContent() {
   return (
     <div className="animate-fade" style={{ maxWidth: 800, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <button onClick={() => { setActiveForm(null); setFormData({}); }} className="btn btn-ghost">← Back</button>
+        <button onClick={() => { setActiveForm(null); setFormData({}); setDarAutoFilled({}); setDarBreakdown(null); }} className="btn btn-ghost">← Back</button>
         <h2 style={{ fontWeight: 700, fontSize: '1.3rem' }}>{formTypes.find(f => f.key === activeForm)?.icon} {formLabels[activeForm]}</h2>
       </div>
 
+      {/* Auto-fill banner for DAR */}
+      {activeForm === 'daily' && (darAutoLoading || Object.keys(darAutoFilled).length > 0) && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(99, 102, 241, 0.08))',
+          border: '1.5px solid rgba(6, 182, 212, 0.25)',
+          borderRadius: 14, padding: '16px 20px', marginBottom: 16,
+          animation: 'slideUp 0.3s ease',
+        }}>
+          {darAutoLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+              <span style={{ display: 'inline-block', width: 18, height: 18, border: '2px solid var(--surface-border)', borderTopColor: '#06b6d4', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              Fetching today&apos;s activity data...
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: '1.1rem' }}>⚡</span>
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0891b2' }}>
+                  Auto-filled from your tracked activity
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                  You can edit any value
+                </span>
+              </div>
+              {darBreakdown && (
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {darBreakdown.emails?.length > 0 && (
+                    <span style={{ background: 'rgba(59, 130, 246, 0.08)', padding: '3px 10px', borderRadius: 20, border: '1px solid rgba(59, 130, 246, 0.15)' }}>
+                      📧 {darBreakdown.emails.length} emails sent
+                    </span>
+                  )}
+                  {darBreakdown.followups?.length > 0 && (
+                    <span style={{ background: 'rgba(99, 102, 241, 0.08)', padding: '3px 10px', borderRadius: 20, border: '1px solid rgba(99, 102, 241, 0.15)' }}>
+                      📞 {darBreakdown.followups.length} follow-ups
+                    </span>
+                  )}
+                  {darBreakdown.newLeadNames?.length > 0 && (
+                    <span style={{ background: 'rgba(139, 92, 246, 0.08)', padding: '3px 10px', borderRadius: 20, border: '1px solid rgba(139, 92, 246, 0.15)' }}>
+                      🎯 {darBreakdown.newLeadNames.length} new leads
+                    </span>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="card">
         <div className="form-grid">
-          {fields.map(f => (
+          {fields.map(f => {
+            const isAutoFilled = activeForm === 'daily' && darAutoFilled[f.name];
+            return (
             <div key={f.name} className="form-group" style={f.type === 'textarea' ? { gridColumn: '1 / -1' } : {}}>
-              <label className="form-label">{f.label}{f.required ? ' *' : ''}</label>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {f.label}{f.required ? ' *' : ''}
+                {isAutoFilled && (
+                  <span title="Auto-filled from tracked data" style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                    fontSize: '0.65rem', fontWeight: 700, color: '#0891b2',
+                    background: 'rgba(6, 182, 212, 0.1)', padding: '1px 8px',
+                    borderRadius: 20, border: '1px solid rgba(6, 182, 212, 0.2)',
+                  }}>⚡ Auto</span>
+                )}
+              </label>
               {f.type === 'textarea' ? (
                 <textarea required={f.required} value={formData[f.name] || ''} onChange={e => handleChange(f.name, e.target.value)} rows={3} placeholder={`Enter ${f.label.toLowerCase()}`} />
               ) : f.type === 'select' ? (
@@ -255,10 +367,22 @@ function FormsContent() {
                   ))}
                 </select>
               ) : (
-                <input type={f.type} readOnly={f.readOnly} style={f.readOnly ? { background: 'var(--bg-secondary)', opacity: 0.8 } : {}} required={f.required} value={formData[f.name] || ''} onChange={e => handleChange(f.name, e.target.value)} placeholder={f.type === 'number' ? '0' : `Enter ${f.label.toLowerCase()}`} />
+                <input
+                  type={f.type}
+                  readOnly={f.readOnly}
+                  style={{
+                    ...(f.readOnly ? { background: 'var(--bg-secondary)', opacity: 0.8 } : {}),
+                    ...(isAutoFilled ? { borderColor: 'rgba(6, 182, 212, 0.35)', background: 'rgba(6, 182, 212, 0.03)' } : {}),
+                  }}
+                  required={f.required}
+                  value={formData[f.name] || ''}
+                  onChange={e => handleChange(f.name, e.target.value)}
+                  placeholder={f.type === 'number' ? '0' : `Enter ${f.label.toLowerCase()}`}
+                />
               )}
             </div>
-          ))}
+          );
+          })}
         </div>
 
         <div className="form-actions">

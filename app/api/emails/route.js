@@ -81,6 +81,24 @@ export async function POST(req) {
   emails.push(newEmail);
   await writeData('emails', emails);
 
+  // Update lead status to Contacted if it is New
+  if (sendResult.success) {
+    const leads = await readData('leads');
+    let leadsUpdated = false;
+    for (let i = 0; i < leads.length; i++) {
+      if (leads[i].userId === session.id && leads[i].email && leads[i].email.toLowerCase() === toEmail.toLowerCase()) {
+        if (leads[i].status === 'New') {
+          leads[i].status = 'Contacted';
+          leads[i].updatedAt = new Date().toISOString();
+          leadsUpdated = true;
+        }
+      }
+    }
+    if (leadsUpdated) {
+      await writeData('leads', leads);
+    }
+  }
+
   if (!sendResult.success) {
     return NextResponse.json({
       email: newEmail,

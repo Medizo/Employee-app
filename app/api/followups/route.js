@@ -98,8 +98,8 @@ export async function POST(req) {
       leads[leadIdx].status = 'Closed';
     } else if (body.clientResponse === 'Not Interested') {
       leads[leadIdx].status = 'Lost';
-    } else if (body.clientResponse === 'Interested — Moving Forward') {
-      if (leads[leadIdx].status === 'New') leads[leadIdx].status = 'Contacted';
+    } else if (leads[leadIdx].status === 'New') {
+      leads[leadIdx].status = 'Contacted';
     }
 
     leads[leadIdx].updatedAt = new Date().toISOString();
