@@ -559,6 +559,7 @@ export default function DashboardLayout({ children }) {
                 <div style={{ overflow: 'hidden' }}>
                   <p style={{ color: 'var(--text)', fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</p>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 500 }}>{user.department} · {user.role}</p>
+                  {user.id && <p style={{ color: 'var(--primary-light)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em', marginTop: 2, fontFamily: 'monospace' }}>{user.id}</p>}
                 </div>
               </div>
             </div>
@@ -798,6 +799,7 @@ export default function DashboardLayout({ children }) {
                       <div style={{ padding: '8px 12px', borderBottom: 'var(--border-width) solid var(--surface-border)', marginBottom: 8 }}>
                         <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name}</p>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</p>
+                        {user?.id && <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace', marginTop: 4, background: 'var(--primary-glow)', padding: '2px 8px', borderRadius: 6, display: 'inline-block', letterSpacing: '0.04em' }}>{user.id}</p>}
                       </div>
                       <button onClick={() => { router.push('/dashboard/settings'); setProfileOpen(false); }} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text)', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background='var(--surface-hover)'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>Settings</button>
                       <button onClick={handleLogout} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem', color: '#f87171', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.1)'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>Logout</button>

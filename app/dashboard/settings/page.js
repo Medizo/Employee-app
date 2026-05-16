@@ -245,6 +245,28 @@ export default function SettingsPage() {
               </div>
 
               <div className="form-grid">
+                {user?.id && (
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="form-label">Employee ID</label>
+                    <div style={{
+                      padding: '10px 14px', borderRadius: 8,
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--surface-border)',
+                      fontFamily: 'monospace', fontWeight: 800,
+                      fontSize: '1.1rem', letterSpacing: '0.06em',
+                      color: 'var(--primary)',
+                      display: 'flex', alignItems: 'center', gap: 10,
+                    }}>
+                      <span style={{
+                        background: 'var(--primary-glow)',
+                        padding: '4px 12px', borderRadius: 6,
+                      }}>{user.id}</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-muted)', fontFamily: 'inherit', letterSpacing: 'normal' }}>
+                        Permanent · Cannot be changed
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="form-label">Display Name</label>
                   <input value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} />
