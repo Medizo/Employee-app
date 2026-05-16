@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from './context';
-import { Users, ClipboardList, Handshake, Activity, Flame, Plus, Mail, CalendarCheck, ArrowUpRight, TrendingUp, Clock, Image as ImageIcon, FileBarChart } from 'lucide-react';
+import { Users, ClipboardList, Handshake, Activity, Flame, Plus, Mail, CalendarCheck, ArrowUpRight, TrendingUp, Clock, Image as ImageIcon, FileBarChart, Target } from 'lucide-react';
 
 const sceneries = [
   { type: 'image', bg: 'url(/scenery/forest.png)' },
@@ -17,9 +17,11 @@ export default function DashboardHome() {
   const [stats, setStats] = useState(null);
   const [activity, setActivity] = useState([]);
   const [bgIndex, setBgIndex] = useState(0);
+  const [targetData, setTargetData] = useState(null);
 
   useEffect(() => {
     fetch('/api/dashboard').then(r => r.json()).then(d => { setStats(d.stats); setActivity(d.activity || []); });
+    fetch('/api/target').then(r => r.json()).then(d => setTargetData(d)).catch(() => {});
     const savedBg = localStorage.getItem('welcomeBg');
     if (savedBg) {
       const idx = parseInt(savedBg, 10);
@@ -67,6 +69,12 @@ export default function DashboardHome() {
   };
 
   const currentBg = sceneries[bgIndex];
+
+  // Revenue target calculations
+  const hasTarget = targetData?.target?.monthlyTarget > 0;
+  const targetAmount = hasTarget ? targetData.target.monthlyTarget : 0;
+  const achieved = targetData?.achieved || 0;
+  const progressPct = hasTarget ? Math.min((achieved / targetAmount) * 100, 100) : 0;
 
   return (
     <div className="animate-fade">
@@ -143,6 +151,108 @@ export default function DashboardHome() {
           );
         })}
       </div>
+
+      {/* ═══════ REVENUE TARGET CARD ═══════ */}
+      {hasTarget && (
+        <div className="card" style={{
+          marginBottom: 28, padding: 0, overflow: 'hidden',
+          animation: 'slideUp 0.5s ease 0.3s both',
+          border: '1px solid rgba(16,185,129,0.15)',
+        }}>
+          {/* Header */}
+          <div style={{
+            padding: '20px 28px',
+            background: 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(6,182,212,0.04))',
+            borderBottom: '1px solid rgba(16,185,129,0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexWrap: 'wrap', gap: 12,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 14,
+                background: 'linear-gradient(135deg, #10b981, #06b6d4)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
+              }}>
+                <Target size={22} color="#fff" strokeWidth={2.2} />
+              </div>
+              <div>
+                <h3 style={{ fontWeight: 800, fontSize: '1.05rem', margin: 0, letterSpacing: '-0.02em' }}>
+                  Revenue Target
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500, marginTop: 2 }}>
+                  Monthly Goal · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{
+                padding: '4px 14px', borderRadius: 20, fontSize: '0.78rem', fontWeight: 700,
+                background: progressPct >= 100 ? '#dcfce7' : progressPct >= 50 ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.08)',
+                color: progressPct >= 100 ? '#16a34a' : progressPct >= 50 ? '#d97706' : '#ef4444',
+                border: `1px solid ${progressPct >= 100 ? '#bbf7d0' : progressPct >= 50 ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.15)'}`,
+              }}>
+                {progressPct >= 100 ? '🎯 Target Achieved!' : `${Math.round(progressPct)}% Achieved`}
+              </span>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: '24px 28px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 24, marginBottom: 24 }}>
+              {/* Target Amount */}
+              <div style={{ padding: '16px 20px', background: 'var(--bg-secondary)', borderRadius: 14, borderLeft: '4px solid #10b981' }}>
+                <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Target</p>
+                <p style={{ fontSize: '1.6rem', fontWeight: 900, color: '#10b981', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                  ₹{Number(targetAmount).toLocaleString('en-IN')}
+                </p>
+              </div>
+              {/* Achieved */}
+              <div style={{ padding: '16px 20px', background: 'var(--bg-secondary)', borderRadius: 14, borderLeft: '4px solid #06b6d4' }}>
+                <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Achieved</p>
+                <p style={{ fontSize: '1.6rem', fontWeight: 900, color: '#06b6d4', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                  ₹{Number(achieved).toLocaleString('en-IN')}
+                </p>
+              </div>
+              {/* Remaining */}
+              <div style={{ padding: '16px 20px', background: 'var(--bg-secondary)', borderRadius: 14, borderLeft: `4px solid ${targetAmount - achieved > 0 ? '#f59e0b' : '#10b981'}` }}>
+                <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Remaining</p>
+                <p style={{ fontSize: '1.6rem', fontWeight: 900, color: targetAmount - achieved > 0 ? '#f59e0b' : '#10b981', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                  ₹{Math.max(0, targetAmount - achieved).toLocaleString('en-IN')}
+                </p>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Progress</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: progressPct >= 100 ? '#10b981' : 'var(--text)' }}>
+                  {Math.round(progressPct)}%
+                </span>
+              </div>
+              <div style={{
+                height: 12, borderRadius: 10, background: 'var(--bg-secondary)',
+                overflow: 'hidden', position: 'relative',
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
+              }}>
+                <div style={{
+                  height: '100%', borderRadius: 10,
+                  width: `${progressPct}%`,
+                  background: progressPct >= 100
+                    ? 'linear-gradient(90deg, #10b981, #34d399)'
+                    : progressPct >= 50
+                    ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+                    : 'linear-gradient(90deg, #ef4444, #f87171)',
+                  transition: 'width 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 0 12px rgba(16,185,129,0.3)',
+                  position: 'relative',
+                }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick actions */}
       <h3 style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: 14, color: 'var(--text-secondary)', letterSpacing: '-0.01em' }}>Quick Actions</h3>
