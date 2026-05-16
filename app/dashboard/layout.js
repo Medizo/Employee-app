@@ -144,8 +144,6 @@ export default function DashboardLayout({ children }) {
   const [hoveredTab, setHoveredTab] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const heartbeatRef = useRef(null);
-  const idleTimerRef = useRef(null);
-  const IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -223,7 +221,6 @@ export default function DashboardLayout({ children }) {
     };
   }, [user, fetchTimeData]);
 
-  // ═══ IDLE TIMER: auto-logout after 15 minutes of inactivity ═══
   const handleLogout = useCallback(async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -231,30 +228,6 @@ export default function DashboardLayout({ children }) {
     localStorage.removeItem('user');
     router.push('/login');
   }, [router]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const resetIdleTimer = () => {
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-      idleTimerRef.current = setTimeout(() => {
-        // Auto-logout due to inactivity
-        handleLogout();
-      }, IDLE_TIMEOUT_MS);
-    };
-
-    // Events that reset the idle timer
-    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
-    events.forEach(e => window.addEventListener(e, resetIdleTimer, { passive: true }));
-
-    // Start the initial timer
-    resetIdleTimer();
-
-    return () => {
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-      events.forEach(e => window.removeEventListener(e, resetIdleTimer));
-    };
-  }, [user, handleLogout]);
 
   // ═══ TAB/BROWSER CLOSE: auto clock-out ═══
   useEffect(() => {

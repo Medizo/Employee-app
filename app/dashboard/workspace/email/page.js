@@ -744,8 +744,8 @@ export default function EmailPage() {
               });
 
               return (
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 200px)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexShrink: 0 }}>
                     <button onClick={() => setOpenThread(null)} className="btn btn-ghost btn-sm">← Back</button>
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg,#6366f1,#818cf8)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.75rem' }}>
                       {(threadLead?.contactPerson || openThread).charAt(0).toUpperCase()}
@@ -755,7 +755,7 @@ export default function EmailPage() {
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{openThread} · {timeline.length} messages</div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 600, overflowY: 'auto', padding: '0 4px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1, overflowY: 'auto', padding: '0 4px', minHeight: 0 }}>
                     {timeline.map((msg, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: msg.direction === 'sent' ? 'flex-end' : 'flex-start' }}>
                         <div style={{
@@ -775,8 +775,8 @@ export default function EmailPage() {
                     ))}
                   </div>
 
-                  {/* ═══ INLINE REPLY BOX ═══ */}
-                  <div className="card" style={{ marginTop: 16, padding: '16px 20px' }}>
+                  {/* ═══ INLINE REPLY BOX — Always visible at bottom ═══ */}
+                  <div className="card" style={{ marginTop: 0, padding: '16px 20px', flexShrink: 0, borderTop: '2px solid var(--surface-border)', borderRadius: '0 0 12px 12px', background: 'var(--surface)', boxShadow: '0 -4px 16px rgba(0,0,0,0.06)', position: 'sticky', bottom: 0, zIndex: 10 }}>
                     {replySuccess && <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '10px', color: '#059669', marginBottom: 12, textAlign: 'center', fontSize: '0.85rem' }}>✅ Reply sent!</div>}
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
