@@ -134,7 +134,7 @@ export default function DeptLeaderboardPage() {
               </p>
             </div>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-                { icon: Handshake, label: 'Deals', value: sorted[myRank - 1]?.dealsCount },
+                {[{ icon: Handshake, label: 'Deals', value: sorted[myRank - 1]?.dealsCount },
                 { icon: Phone, label: 'Calls', value: sorted[myRank - 1]?.callsMade },
                 { icon: Mail, label: 'Contacts', value: sorted[myRank - 1]?.emailsSent || 0 },
                 { icon: RotateCcw, label: 'Follow-ups', value: sorted[myRank - 1]?.followUps },
