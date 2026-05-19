@@ -386,18 +386,18 @@ export default function DashboardLayout({ children }) {
             }}>
               {/* Top hazard stripe */}
               <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0, height: 6,
+                position: 'fixed', top: 0, left: 0, right: 0, height: 6, zIndex: 10000,
                 background: `repeating-linear-gradient(90deg, ${borderColor} 0px, ${borderColor} 20px, transparent 20px, transparent 40px)`,
               }} />
               {/* Bottom hazard stripe */}
               <div style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0, height: 6,
+                position: 'fixed', bottom: 0, left: 0, right: 0, height: 6, zIndex: 10000,
                 background: `repeating-linear-gradient(90deg, ${borderColor} 0px, ${borderColor} 20px, transparent 20px, transparent 40px)`,
               }} />
               {/* Left border */}
-              <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 6, background: borderColor }} />
+              <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: 6, zIndex: 10000, background: borderColor }} />
               {/* Right border */}
-              <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 6, background: borderColor }} />
+              <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 6, zIndex: 10000, background: borderColor }} />
 
               {/* Severity icon (large, pulsing) */}
               <div style={{
