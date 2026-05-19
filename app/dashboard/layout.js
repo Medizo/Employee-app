@@ -379,9 +379,9 @@ export default function DashboardLayout({ children }) {
               background: isCritical ? 'rgba(30,0,0,0.96)' : 'rgba(0,0,0,0.92)',
               backdropFilter: 'blur(12px)',
               display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'flex-start',
-              padding: '40px 20px',
-              overflowY: 'auto',
+              alignItems: 'center', justifyContent: 'center',
+              padding: '30px 26px',
+              overflow: 'hidden',
               animation: isCritical ? 'alertPulse 2s ease-in-out infinite' : undefined,
             }}>
               {/* Top hazard stripe */}
@@ -401,60 +401,65 @@ export default function DashboardLayout({ children }) {
 
               {/* Severity icon (large, pulsing) */}
               <div style={{
-                width: 80, height: 80, borderRadius: '50%',
+                width: 48, height: 48, borderRadius: '50%',
                 background: `${borderColor}20`, border: `3px solid ${borderColor}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: 24,
+                marginBottom: 8, flexShrink: 0,
                 animation: isCritical ? 'alertIconPulse 1.5s ease-in-out infinite' : undefined,
                 boxShadow: `0 0 40px ${borderColor}40`,
               }}>
-                <SevIcon size={40} color={borderColor} />
+                <SevIcon size={22} color={borderColor} />
               </div>
 
               {/* Severity label */}
               <div style={{
-                padding: '6px 24px', borderRadius: 24,
+                padding: '4px 16px', borderRadius: 24,
                 background: borderColor, color: '#fff',
-                fontWeight: 900, fontSize: '0.75rem', letterSpacing: '0.15em',
-                textTransform: 'uppercase', marginBottom: 12,
+                fontWeight: 900, fontSize: '0.65rem', letterSpacing: '0.15em',
+                textTransform: 'uppercase', marginBottom: 4, flexShrink: 0,
               }}>
                 ⚠ {sev.label} ALERT
               </div>
 
               {/* Alert counter */}
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', fontWeight: 500, marginBottom: 32 }}>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', fontWeight: 500, marginBottom: 8, flexShrink: 0 }}>
                 Alert {activeAlertIdx + 1} of {pendingAlerts.length} • Issued by {alert?.createdBy || 'Admin'} • {alert?.createdAt ? new Date(alert.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
               </p>
 
-              {/* Main content card */}
+              {/* Main content card — flex column so only message scrolls */}
               <div style={{
                 width: '100%', maxWidth: 640,
+                maxHeight: 'calc(100vh - 280px)',
                 background: '#fff', borderRadius: 20,
                 border: `3px solid ${borderColor}`,
                 boxShadow: `0 0 60px ${borderColor}30, 0 25px 80px rgba(0,0,0,0.4)`,
-                flexShrink: 0,
+                display: 'flex', flexDirection: 'column',
+                overflow: 'hidden',
               }}>
-                {/* Title bar */}
+                {/* Title bar — always visible */}
                 <div style={{
                   background: `linear-gradient(135deg, ${borderColor}, ${borderColor}cc)`,
-                  padding: '20px 28px',
+                  padding: '16px 24px',
                   display: 'flex', alignItems: 'center', gap: 14,
-                  borderRadius: '17px 17px 0 0',
+                  flexShrink: 0,
                 }}>
-                  <SevIcon size={26} color="#fff" />
-                  <h2 style={{ color: '#fff', fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.01em', margin: 0, lineHeight: 1.3 }}>
+                  <SevIcon size={24} color="#fff" />
+                  <h2 style={{ color: '#fff', fontWeight: 800, fontSize: '1.15rem', letterSpacing: '-0.01em', margin: 0, lineHeight: 1.3 }}>
                     {alert?.title}
                   </h2>
                 </div>
 
-                {/* Message body */}
-                <div style={{ padding: '28px 28px 24px' }}>
-                  <p style={{ color: '#1e293b', fontSize: '1rem', lineHeight: 1.8, marginBottom: 24, whiteSpace: 'pre-wrap', maxHeight: '35vh', overflowY: 'auto', paddingRight: '8px' }}>
+                {/* Scrollable message area */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px 0', minHeight: 0 }}>
+                  <p style={{ color: '#1e293b', fontSize: '0.95rem', lineHeight: 1.8, marginBottom: 20, whiteSpace: 'pre-wrap' }}>
                     {alert?.message}
                   </p>
+                </div>
 
+                {/* Fixed bottom section — comment + button always visible */}
+                <div style={{ padding: '16px 24px 20px', flexShrink: 0, borderTop: '1px solid #e2e8f0' }}>
                   {alert?.requireComment ? (
-                    <div style={{ marginBottom: 24 }}>
+                    <div style={{ marginBottom: 16 }}>
                       <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
                         {alert?.commentPrompt || 'Your Response'} <span style={{ color: '#ef4444' }}>*</span>
                       </label>
@@ -466,7 +471,7 @@ export default function DashboardLayout({ children }) {
                           width: '100%', padding: '12px 16px',
                           border: `2px solid ${alertComment.trim() ? '#22c55e' : '#e2e8f0'}`,
                           borderRadius: 12, fontSize: '0.9rem',
-                          outline: 'none', resize: 'vertical', minHeight: 100,
+                          outline: 'none', resize: 'none', height: 80,
                           fontFamily: 'inherit', color: '#0f172a', boxSizing: 'border-box',
                           transition: 'border-color 0.2s',
                         }}
@@ -477,11 +482,11 @@ export default function DashboardLayout({ children }) {
                   ) : (
                     <div style={{
                       background: `${borderColor}10`, border: `1px solid ${borderColor}30`,
-                      borderRadius: 12, padding: '14px 18px', marginBottom: 24,
+                      borderRadius: 12, padding: '12px 16px', marginBottom: 16,
                       display: 'flex', alignItems: 'center', gap: 10,
                     }}>
                       <Info size={16} color={borderColor} />
-                      <p style={{ color: '#475569', fontSize: '0.875rem', margin: 0 }}>
+                      <p style={{ color: '#475569', fontSize: '0.85rem', margin: 0 }}>
                         Please click below to acknowledge you have read and understood this alert.
                       </p>
                     </div>
@@ -491,10 +496,10 @@ export default function DashboardLayout({ children }) {
                     onClick={acknowledgeAlert}
                     disabled={alertSubmitting || (alert?.requireComment && !alertComment.trim())}
                     style={{
-                      width: '100%', padding: '16px',
+                      width: '100%', padding: '14px',
                       background: `linear-gradient(135deg, ${borderColor}, ${borderColor}dd)`,
                       color: '#fff', border: 'none', borderRadius: 14,
-                      fontWeight: 800, fontSize: '1.05rem',
+                      fontWeight: 800, fontSize: '1rem',
                       cursor: (alertSubmitting || (alert?.requireComment && !alertComment.trim())) ? 'not-allowed' : 'pointer',
                       opacity: (alertSubmitting || (alert?.requireComment && !alertComment.trim())) ? 0.5 : 1,
                       transition: 'all 0.2s',
@@ -510,7 +515,7 @@ export default function DashboardLayout({ children }) {
               </div>
 
               {/* Warning footer text */}
-              <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.75rem', marginTop: 24, textAlign: 'center', maxWidth: 400, flexShrink: 0 }}>
+              <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', marginTop: 12, textAlign: 'center', maxWidth: 400, flexShrink: 0 }}>
                 ⚠ This alert requires immediate acknowledgement. You cannot use the portal until all active alerts are addressed.
               </p>
             </div>
