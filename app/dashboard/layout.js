@@ -446,7 +446,7 @@ export default function DashboardLayout({ children }) {
                 </div>
 
                 {/* Message body */}
-                <div style={{ padding: '28px 28px 24px' }}>
+                <div style={{ padding: '28px 28px 24px', maxHeight: '65vh', overflowY: 'auto' }}>
                   <p style={{ color: '#1e293b', fontSize: '1rem', lineHeight: 1.8, marginBottom: 24, whiteSpace: 'pre-wrap' }}>
                     {alert?.message}
                   </p>
