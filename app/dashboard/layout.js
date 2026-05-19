@@ -430,7 +430,6 @@ export default function DashboardLayout({ children }) {
               <div style={{
                 width: '100%', maxWidth: 640,
                 background: '#fff', borderRadius: 20,
-                overflow: 'hidden',
                 border: `3px solid ${borderColor}`,
                 boxShadow: `0 0 60px ${borderColor}30, 0 25px 80px rgba(0,0,0,0.4)`,
                 flexShrink: 0,
@@ -440,6 +439,7 @@ export default function DashboardLayout({ children }) {
                   background: `linear-gradient(135deg, ${borderColor}, ${borderColor}cc)`,
                   padding: '20px 28px',
                   display: 'flex', alignItems: 'center', gap: 14,
+                  borderRadius: '17px 17px 0 0',
                 }}>
                   <SevIcon size={26} color="#fff" />
                   <h2 style={{ color: '#fff', fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.01em', margin: 0, lineHeight: 1.3 }}>
