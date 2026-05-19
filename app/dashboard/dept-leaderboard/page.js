@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useUser } from '../context';
-import { Trophy, Medal, TrendingUp, TrendingDown, Minus, Phone, Handshake, RotateCcw, Users, Building2 } from 'lucide-react';
+import { Trophy, Medal, TrendingUp, TrendingDown, Minus, Phone, Handshake, RotateCcw, Users, Building2, Mail } from 'lucide-react';
 
 export default function DeptLeaderboardPage() {
   const ctx = useUser();
@@ -92,6 +92,7 @@ export default function DeptLeaderboardPage() {
           { icon: '🏆', label: 'Deal Closed', pts: '1,000 pts', color: '#16a34a', bg: '#f0fdf4' },
           { icon: '📞', label: 'Call Made', pts: '100 pts', color: '#3b82f6', bg: '#eff6ff' },
           { icon: '🔄', label: 'Follow-up', pts: '100 pts', color: '#f59e0b', bg: '#fffbeb' },
+          { icon: '📧', label: 'Contacted', pts: '10 pts', color: '#8b5cf6', bg: '#f3e8ff' },
         ].map(p => (
           <div key={p.label} style={{
             display: 'flex', alignItems: 'center', gap: 8,
@@ -133,9 +134,9 @@ export default function DeptLeaderboardPage() {
               </p>
             </div>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-              {[
                 { icon: Handshake, label: 'Deals', value: sorted[myRank - 1]?.dealsCount },
                 { icon: Phone, label: 'Calls', value: sorted[myRank - 1]?.callsMade },
+                { icon: Mail, label: 'Contacts', value: sorted[myRank - 1]?.emailsSent || 0 },
                 { icon: RotateCcw, label: 'Follow-ups', value: sorted[myRank - 1]?.followUps },
               ].map((s, i) => (
                 <div key={i} style={{ textAlign: 'center' }}>
@@ -187,7 +188,7 @@ export default function DeptLeaderboardPage() {
       {sorted.length > 0 && (
         <div className="table-container">
           <table>
-            <thead><tr><th>Rank</th><th>Employee</th><th>Deals</th><th>Calls</th><th>Follow-ups</th><th>Score</th><th>Trend</th></tr></thead>
+            <thead><tr><th>Rank</th><th>Employee</th><th>Deals</th><th>Calls</th><th>Contacts</th><th>Follow-ups</th><th>Score</th><th>Trend</th></tr></thead>
             <tbody>
               {sorted.map((e, i) => (
                 <tr key={`${e.userId}-${i}`} style={e.userId === ctx?.user?.id ? {
@@ -220,6 +221,7 @@ export default function DeptLeaderboardPage() {
                   </td>
                   <td style={{ fontWeight: 600 }}>{e.dealsCount}</td>
                   <td style={{ fontWeight: 600 }}>{e.callsMade}</td>
+                  <td style={{ fontWeight: 600 }}>{e.emailsSent || 0}</td>
                   <td style={{ fontWeight: 600 }}>{e.followUps}</td>
                   <td><strong style={{ color: accent.color, fontSize: '1rem' }}>{e.score}</strong></td>
                   <td>

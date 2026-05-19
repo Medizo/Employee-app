@@ -7,6 +7,7 @@ const POINTS = {
   DEAL_CLOSED: 1000,
   CALL: 100,
   FOLLOWUP: 100,
+  CONTACTED: 10,
 };
 
 export async function GET() {
@@ -44,6 +45,7 @@ export async function GET() {
       department: u.department,
       dealsCount: 0,
       callsMade: 0,
+      emailsSent: 0,
       followUps: 0,
       dealValue: 0,
       score: 0,
@@ -78,8 +80,11 @@ export async function GET() {
 
       case 'Daily Activity Report':
         const calls = Number(sub.data?.totalCalls || 0);
+        const emails = Number(sub.data?.totalEmails || 0);
         stats.callsMade += calls;
+        stats.emailsSent += emails;
         stats.score += calls * POINTS.CALL;
+        stats.score += emails * POINTS.CONTACTED;
         break;
 
       default:

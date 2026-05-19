@@ -7,6 +7,7 @@ const POINTS = {
   DEAL_CLOSED: 1000,
   CALL: 100,
   FOLLOWUP: 100,
+  CONTACTED: 10,
 };
 
 export async function GET() {
@@ -30,6 +31,7 @@ export async function GET() {
       name: u.name || 'Unknown',
       dealsCount: 0,
       callsMade: 0,
+      emailsSent: 0,
       followUps: 0,
       dealValue: 0,
       score: 0,
@@ -53,6 +55,7 @@ export async function GET() {
         name: 'Unknown',
         dealsCount: 0,
         callsMade: 0,
+        emailsSent: 0,
         followUps: 0,
         dealValue: 0,
         score: 0,
@@ -74,12 +77,15 @@ export async function GET() {
         break;
 
       case 'Daily Activity Report':
-        // Extract calls and follow-ups from daily reports
+        // Extract calls, emails and follow-ups from daily reports
         const calls = Number(sub.data?.totalCalls || 0);
+        const emails = Number(sub.data?.totalEmails || 0);
         const followups = Number(sub.data?.followUps || 0);
         stats.callsMade += calls;
-        // Award points per call logged in daily reports
+        stats.emailsSent += emails;
+        // Award points per call and email logged in daily reports
         stats.score += calls * POINTS.CALL;
+        stats.score += emails * POINTS.CONTACTED;
         // Don't double-count follow-ups if filed as separate follow-up form
         break;
 
