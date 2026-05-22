@@ -490,8 +490,8 @@ export default function AttendancePage() {
                   <option value="">Select leave type</option>
                   <option value="Casual Leave">Casual Leave</option>
                   <option value="Sick Leave">Sick Leave</option>
-                  <option value="Full Day">Full Day Leave</option>
-                  <option value="Half Day">Half Day Leave</option>
+                  <option value="Earned Leave">Earned Leave</option>
+                  <option value="LOP">Loss of Pay (LOP)</option>
                   {compOffBalance > 0 && (
                     <option value="Comp Off">🌟 Comp Off ({compOffBalance} available)</option>
                   )}
