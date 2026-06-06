@@ -16,6 +16,7 @@ export async function GET() {
     const settings = await db.collection('user_settings').findOne({ userId: session.id });
     if (settings?.themeMode) safeUser.theme = settings.themeMode;
     if (settings?.themeColor) safeUser.themeColor = settings.themeColor;
+    if (settings?.fontSize) safeUser.fontSize = settings.fontSize;
 
     // Check DigiLocker verification status
     const digilocker = await db.collection('digilocker_verifications').findOne({ userId: session.id });

@@ -137,6 +137,12 @@ export default function SettingsPage() {
     setSaved('Theme color updated!'); setTimeout(() => setSaved(''), 2000);
   };
 
+  const saveFontSize = async (sz) => {
+    ctx.setTextSize(sz);
+    await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'fontSize', fontSize: sz }) });
+    setSaved('Font size updated!'); setTimeout(() => setSaved(''), 2000);
+  };
+
   const tabs = [
     { key: 'profile', icon: '👤', label: 'Edit Profile' },
     { key: 'password', icon: '🔒', label: 'Change Password' },
@@ -411,6 +417,99 @@ export default function SettingsPage() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div style={{ marginTop: 24 }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 12 }}>Text Size</h4>
+                {(() => {
+                  const fontSizes = [
+                    { size: 12, label: 'Smallest' },
+                    { size: 14, label: 'Small' },
+                    { size: 16, label: 'Default' },
+                    { size: 18, label: 'Medium' },
+                    { size: 20, label: 'Large' },
+                    { size: 22, label: 'Extra Large' },
+                    { size: 24, label: 'Largest' }
+                  ];
+
+                  let currentVal = ctx?.textSize || 16;
+                  let currentIndex = fontSizes.findIndex(f => f.size === currentVal);
+                  if (currentIndex === -1) {
+                    const parsed = parseInt(currentVal, 10);
+                    currentIndex = fontSizes.findIndex(f => f.size === parsed);
+                    if (currentIndex === -1) currentIndex = 2;
+                  }
+
+                  const currentObj = fontSizes[currentIndex];
+
+                  const decrease = () => {
+                    if (currentIndex > 0) {
+                      saveFontSize(fontSizes[currentIndex - 1].size);
+                    }
+                  };
+
+                  const increase = () => {
+                    if (currentIndex < fontSizes.length - 1) {
+                      saveFontSize(fontSizes[currentIndex + 1].size);
+                    }
+                  };
+
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, maxWidth: 300, background: 'var(--bg-secondary)', padding: '10px 14px', borderRadius: 12, border: 'var(--border-width) solid var(--surface-border)' }}>
+                      <button
+                        disabled={currentIndex === 0}
+                        onClick={decrease}
+                        style={{
+                          width: 36,
+                          height: 36,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: 8,
+                          background: 'var(--surface)',
+                          border: 'var(--border-width) solid var(--surface-border)',
+                          color: currentIndex === 0 ? 'var(--text-muted)' : 'var(--text)',
+                          cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
+                          opacity: currentIndex === 0 ? 0.5 : 1,
+                          transition: 'all 0.2s',
+                          fontSize: '1.1rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        -
+                      </button>
+
+                      <div style={{ flex: 1, textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text)' }}>
+                          {currentObj.label}
+                        </span>
+                      </div>
+
+                      <button
+                        disabled={currentIndex === fontSizes.length - 1}
+                        onClick={increase}
+                        style={{
+                          width: 36,
+                          height: 36,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: 8,
+                          background: 'var(--surface)',
+                          border: 'var(--border-width) solid var(--surface-border)',
+                          color: currentIndex === fontSizes.length - 1 ? 'var(--text-muted)' : 'var(--text)',
+                          cursor: currentIndex === fontSizes.length - 1 ? 'not-allowed' : 'pointer',
+                          opacity: currentIndex === fontSizes.length - 1 ? 0.5 : 1,
+                          transition: 'all 0.2s',
+                          fontSize: '1.1rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, Briefcase, FileText, History, Trophy, CalendarDays, Lightbulb, ListTodo, Settings, ChevronLeft, LogOut, Menu, Sun, Monitor, Moon, Search, Bell, Timer, CalendarClock, AlertTriangle, Info, Zap, Glasses, Eye, CheckCircle2, BarChart3, PenTool, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileText, History, Trophy, CalendarDays, Lightbulb, ListTodo, Settings, ChevronLeft, LogOut, Menu, Sun, Monitor, Moon, Search, Bell, Timer, CalendarClock, AlertTriangle, Info, Zap, Glasses, Eye, CheckCircle2, BarChart3, PenTool, ShieldCheck, Type, Minus, Plus } from 'lucide-react';
 import { UserContext } from './context';
 import logoImg from '../logo.png';
 
@@ -135,6 +135,28 @@ export default function DashboardLayout({ children }) {
   const [loading, setLoading] = useState(true);
   const [textSize, setTextSize] = useState(16);
 
+  const themeRef = useRef(null);
+  const colorRef = useRef(null);
+  const fontSizeRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (themeRef.current && !themeRef.current.contains(event.target)) {
+        setThemeDropdownOpen(false);
+      }
+      if (colorRef.current && !colorRef.current.contains(event.target)) {
+        setColorDropdownOpen(false);
+      }
+      if (fontSizeRef.current && !fontSizeRef.current.contains(event.target)) {
+        setFontSizeDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   // Time tracking state
   const [timeData, setTimeData] = useState({
     loginTime: null,
@@ -147,6 +169,9 @@ export default function DashboardLayout({ children }) {
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+  const [colorDropdownOpen, setColorDropdownOpen] = useState(false);
+  const [fontSizeDropdownOpen, setFontSizeDropdownOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [emailUnread, setEmailUnread] = useState(0);
   // Alerts
@@ -166,8 +191,10 @@ export default function DashboardLayout({ children }) {
       setUser(d.user);
       const userTheme = d.user.theme || 'system';
       const userColor = d.user.themeColor || 'beige';
+      const userFontSize = d.user.fontSize || 16;
       setThemeMode(userTheme);
       setThemeColor(userColor);
+      setTextSize(userFontSize);
       setLoading(false);
       // Check for unacknowledged alerts
       fetch('/api/alerts').then(r => r.json()).then(ad => {
@@ -385,7 +412,7 @@ export default function DashboardLayout({ children }) {
   };
 
   return (
-    <UserContext.Provider value={{ user, setUser, theme: themeMode, setTheme: setThemeMode, themeColor, setThemeColor }}>
+    <UserContext.Provider value={{ user, setUser, theme: themeMode, setTheme: setThemeMode, themeColor, setThemeColor, textSize, setTextSize }}>
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
         {hoveredTab && (
           <div
@@ -721,66 +748,357 @@ export default function DashboardLayout({ children }) {
 
               {/* ═══════ GROUP 2: SETTINGS ═══════ */}
               <div className="header-group" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {/* Color Palette */}
-                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-secondary)', padding: '3px', borderRadius: '24px', border: 'var(--border-width) solid var(--surface-border)', gap: 4 }}>
-                  {[
-                    { key: 'beige', color: '#c29b76' },
-                    { key: 'seafoam', color: '#5b9e8c' },
-                    { key: 'rose', color: '#c97a8e' },
-                  ].map(({ key, color }) => (
-                    <button key={key} onClick={async () => {
-                      setThemeColor(key);
-                      await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'themeColor', themeColor: key }) });
+                {/* Color Palette Dropdown */}
+                {(() => {
+                  const activeColorObj = [
+                    { key: 'beige', color: '#c29b76', label: 'Beige Theme' },
+                    { key: 'seafoam', color: '#5b9e8c', label: 'Seafoam Theme' },
+                    { key: 'rose', color: '#c97a8e', label: 'Rose Theme' },
+                  ].find(c => c.key === themeColor) || { key: 'beige', color: '#c29b76', label: 'Beige Theme' };
+                  return (
+                    <div ref={colorRef} onMouseEnter={() => setColorDropdownOpen(true)} onMouseLeave={() => setColorDropdownOpen(false)} style={{ position: 'relative' }}>
+                      <button
+                        onClick={() => {
+                          setColorDropdownOpen(!colorDropdownOpen);
+                          setNotificationsOpen(false);
+                          setProfileOpen(false);
+                          setDigilockerOpen(false);
+                          setThemeDropdownOpen(false);
+                          setFontSizeDropdownOpen(false);
+                        }}
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 12,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'var(--bg-secondary)',
+                          border: 'var(--border-width) solid var(--surface-border)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                        }}
+                        title={`Color Palette: ${activeColorObj.label}`}
+                      >
+                        <div style={{ width: 18, height: 18, borderRadius: '50%', background: activeColorObj.color, border: '1px solid rgba(0,0,0,0.1)' }} />
+                      </button>
+
+                      {colorDropdownOpen && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 'calc(100% - 4px)',
+                          right: 0,
+                          padding: '12px 0px',
+                          zIndex: 100,
+                        }}>
+                          <div style={{
+                            width: 200,
+                            background: 'var(--surface-overlay)',
+                            border: 'var(--border-width) solid var(--surface-border)',
+                            borderRadius: 12,
+                            boxShadow: 'var(--shadow-md)',
+                            padding: 6,
+                            backdropFilter: 'blur(30px)',
+                            WebkitBackdropFilter: 'blur(30px)',
+                          }}>
+                            {[
+                              { key: 'beige', color: '#c29b76', label: 'Beige Theme' },
+                              { key: 'seafoam', color: '#5b9e8c', label: 'Seafoam Theme' },
+                              { key: 'rose', color: '#c97a8e', label: 'Rose Theme' },
+                            ].map(({ key, color, label }) => {
+                              const isSelected = themeColor === key;
+                              return (
+                                <button
+                                  key={key}
+                                  onClick={async () => {
+                                    setThemeColor(key);
+                                    setColorDropdownOpen(false);
+                                    await fetch('/api/settings', {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ type: 'themeColor', themeColor: key }),
+                                    });
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    width: '100%',
+                                    padding: '8px 12px',
+                                    background: isSelected ? 'var(--surface-hover)' : 'transparent',
+                                    border: 'none',
+                                    borderRadius: 8,
+                                    color: isSelected ? 'var(--primary)' : 'var(--text)',
+                                    fontSize: '0.8rem',
+                                    fontWeight: isSelected ? 700 : 500,
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s',
+                                  }}
+                                  onMouseEnter={e => {
+                                    if (!isSelected) e.currentTarget.style.background = 'var(--surface-hover)';
+                                  }}
+                                  onMouseLeave={e => {
+                                    if (!isSelected) e.currentTarget.style.background = 'transparent';
+                                  }}
+                                >
+                                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: color, border: '1px solid rgba(0,0,0,0.1)', flexShrink: 0 }} />
+                                  <span>{label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Font Size Dropdown */}
+                <div ref={fontSizeRef} onMouseEnter={() => setFontSizeDropdownOpen(true)} onMouseLeave={() => setFontSizeDropdownOpen(false)} style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => {
+                      setFontSizeDropdownOpen(!fontSizeDropdownOpen);
+                      setNotificationsOpen(false);
+                      setProfileOpen(false);
+                      setDigilockerOpen(false);
+                      setThemeDropdownOpen(false);
+                      setColorDropdownOpen(false);
                     }}
-                      style={{
-                        width: 24, height: 24, borderRadius: '50%', border: '2px solid',
-                        borderColor: themeColor === key ? 'var(--text)' : 'transparent',
-                        background: color,
-                        cursor: 'pointer', transition: 'all 0.2s',
-                      }}
-                      title={`Color: ${key}`} />
-                  ))}
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 12,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'var(--bg-secondary)',
+                      border: 'var(--border-width) solid var(--surface-border)',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                    title="Font Size"
+                  >
+                    <Type size={18} />
+                  </button>
+
+                  {fontSizeDropdownOpen && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 'calc(100% - 4px)',
+                      right: 0,
+                      padding: '12px 0px',
+                      zIndex: 100,
+                    }}>
+                      <div style={{
+                        width: 200,
+                        background: 'var(--surface-overlay)',
+                        border: 'var(--border-width) solid var(--surface-border)',
+                        borderRadius: 12,
+                        boxShadow: 'var(--shadow-md)',
+                        padding: 12,
+                        backdropFilter: 'blur(30px)',
+                        WebkitBackdropFilter: 'blur(30px)',
+                      }}>
+                        <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Font Size</p>
+                        
+                        {(() => {
+                          const fontSizes = [
+                            { size: 12, label: 'Smallest' },
+                            { size: 14, label: 'Small' },
+                            { size: 16, label: 'Default' },
+                            { size: 18, label: 'Medium' },
+                            { size: 20, label: 'Large' },
+                            { size: 22, label: 'Extra Large' },
+                            { size: 24, label: 'Largest' }
+                          ];
+
+                          let currentIndex = fontSizes.findIndex(f => f.size === textSize);
+                          if (currentIndex === -1) {
+                            const parsed = parseInt(textSize, 10);
+                            currentIndex = fontSizes.findIndex(f => f.size === parsed);
+                            if (currentIndex === -1) currentIndex = 2;
+                          }
+
+                          const currentObj = fontSizes[currentIndex];
+
+                          const changeSize = async (newIndex) => {
+                            if (newIndex >= 0 && newIndex < fontSizes.length) {
+                              const nextObj = fontSizes[newIndex];
+                              setTextSize(nextObj.size);
+                              await fetch('/api/settings', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ type: 'fontSize', fontSize: nextObj.size }),
+                              });
+                            }
+                          };
+
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: 'var(--surface-hover)', padding: '6px 8px', borderRadius: 8, border: 'var(--border-width) solid var(--surface-border)' }}>
+                              <button
+                                disabled={currentIndex === 0}
+                                onClick={() => changeSize(currentIndex - 1)}
+                                style={{
+                                  width: 28,
+                                  height: 28,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  borderRadius: 6,
+                                  background: 'var(--surface)',
+                                  border: 'var(--border-width) solid var(--surface-border)',
+                                  color: currentIndex === 0 ? 'var(--text-muted)' : 'var(--text)',
+                                  cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
+                                  opacity: currentIndex === 0 ? 0.5 : 1,
+                                  transition: 'all 0.15s',
+                                }}
+                              >
+                                <Minus size={12} />
+                              </button>
+
+                              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text)', textAlign: 'center', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {currentObj.label}
+                              </span>
+
+                              <button
+                                disabled={currentIndex === fontSizes.length - 1}
+                                onClick={() => changeSize(currentIndex + 1)}
+                                style={{
+                                  width: 28,
+                                  height: 28,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  borderRadius: 6,
+                                  background: 'var(--surface)',
+                                  border: 'var(--border-width) solid var(--surface-border)',
+                                  color: currentIndex === fontSizes.length - 1 ? 'var(--text-muted)' : 'var(--text)',
+                                  cursor: currentIndex === fontSizes.length - 1 ? 'not-allowed' : 'pointer',
+                                  opacity: currentIndex === fontSizes.length - 1 ? 0.5 : 1,
+                                  transition: 'all 0.15s',
+                                }}
+                              >
+                                <Plus size={12} />
+                              </button>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Text Size */}
-                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-secondary)', padding: '4px', borderRadius: '24px', border: 'var(--border-width) solid var(--surface-border)', gap: 4 }}>
-                  <button onClick={() => setTextSize(s => Math.max(12, s - 2))} style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', fontWeight: 800, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Decrease Text Size">A-</button>
-                  <span style={{ 
-                    fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)',
-                    background: 'var(--surface)', border: '1px solid var(--surface-border)',
-                    borderRadius: '8px', width: 32, height: 24,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: 'var(--shadow-sm)'
-                  }}>{textSize}</span>
-                  <button onClick={() => setTextSize(s => Math.min(24, s + 2))} style={{ width: 28, height: 28, borderRadius: '50%', background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', fontWeight: 800, fontSize: '1.0rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Increase Text Size">A+</button>
-                </div>
+                {/* Theme Mode Dropdown */}
+                {(() => {
+                  const activeModeObj = [
+                    { key: 'light', icon: Sun, label: 'Light Mode' },
+                    { key: 'system', icon: Monitor, label: 'System Default' },
+                    { key: 'dark', icon: Moon, label: 'Dark Mode' },
+                    { key: 'high-contrast', icon: Glasses, label: 'High Contrast (Dark)' },
+                    { key: 'high-contrast-light', icon: Eye, label: 'High Contrast (Light)' },
+                  ].find(m => m.key === themeMode) || { key: 'system', icon: Monitor, label: 'System Default' };
+                  const ActiveIcon = activeModeObj.icon;
+                  return (
+                    <div ref={themeRef} onMouseEnter={() => setThemeDropdownOpen(true)} onMouseLeave={() => setThemeDropdownOpen(false)} style={{ position: 'relative' }}>
+                      <button
+                        onClick={() => {
+                          setThemeDropdownOpen(!themeDropdownOpen);
+                          setNotificationsOpen(false);
+                          setProfileOpen(false);
+                          setDigilockerOpen(false);
+                        }}
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 12,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'var(--bg-secondary)',
+                          border: 'var(--border-width) solid var(--surface-border)',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                        }}
+                        title={`Theme Mode: ${activeModeObj.label}`}
+                      >
+                        <ActiveIcon size={18} />
+                      </button>
 
-                {/* Theme Mode */}
-                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-secondary)', padding: '3px', borderRadius: '24px', border: 'var(--border-width) solid var(--surface-border)' }}>
-                  {[
-                    { key: 'light', icon: Sun },
-                    { key: 'system', icon: Monitor },
-                    { key: 'dark', icon: Moon },
-                    { key: 'high-contrast', icon: Glasses },
-                    { key: 'high-contrast-light', icon: Eye },
-                  ].map(({ key, icon: ThIcon }) => (
-                    <button key={key} onClick={async () => {
-                      setThemeMode(key);
-                      await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'theme', theme: key }) });
-                    }}
-                      style={{
-                        width: 32, height: 32, borderRadius: '50%', border: 'none',
-                        background: themeMode === key ? 'var(--surface)' : 'transparent',
-                        boxShadow: themeMode === key ? 'var(--shadow-sm)' : 'none',
-                        cursor: 'pointer', transition: 'all 0.2s',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: themeMode === key ? 'var(--primary)' : 'var(--text-muted)',
-                      }}
-                      title={`Mode: ${key}`}>
-                      <ThIcon size={15} />
-                    </button>
-                  ))}
-                </div>
+                      {themeDropdownOpen && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 'calc(100% - 4px)',
+                          right: 0,
+                          padding: '12px 0px',
+                          zIndex: 100,
+                        }}>
+                          <div style={{
+                            width: 220,
+                            background: 'var(--surface-overlay)',
+                            border: 'var(--border-width) solid var(--surface-border)',
+                            borderRadius: 12,
+                            boxShadow: 'var(--shadow-md)',
+                            padding: 6,
+                            backdropFilter: 'blur(30px)',
+                            WebkitBackdropFilter: 'blur(30px)',
+                          }}>
+                            {[
+                              { key: 'light', icon: Sun, label: 'Light Mode' },
+                              { key: 'system', icon: Monitor, label: 'System Default' },
+                              { key: 'dark', icon: Moon, label: 'Dark Mode' },
+                              { key: 'high-contrast', icon: Glasses, label: 'High Contrast (Dark)' },
+                              { key: 'high-contrast-light', icon: Eye, label: 'High Contrast (Light)' },
+                            ].map(({ key, icon: OptionIcon, label }) => {
+                              const isSelected = themeMode === key;
+                              return (
+                                <button
+                                  key={key}
+                                  onClick={async () => {
+                                    setThemeMode(key);
+                                    setThemeDropdownOpen(false);
+                                    await fetch('/api/settings', {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ type: 'theme', theme: key }),
+                                    });
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    width: '100%',
+                                    padding: '8px 12px',
+                                    background: isSelected ? 'var(--surface-hover)' : 'transparent',
+                                    border: 'none',
+                                    borderRadius: 8,
+                                    color: isSelected ? 'var(--primary)' : 'var(--text)',
+                                    fontSize: '0.8rem',
+                                    fontWeight: isSelected ? 700 : 500,
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s',
+                                  }}
+                                  onMouseEnter={e => {
+                                    if (!isSelected) e.currentTarget.style.background = 'var(--surface-hover)';
+                                  }}
+                                  onMouseLeave={e => {
+                                    if (!isSelected) e.currentTarget.style.background = 'transparent';
+                                  }}
+                                >
+                                  <OptionIcon size={14} color={isSelected ? 'var(--primary)' : 'var(--text-muted)'} />
+                                  <span>{label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* ═══════ GROUP 3: USER ═══════ */}
@@ -789,7 +1107,7 @@ export default function DashboardLayout({ children }) {
 
                 {/* Notifications */}
                 <div style={{ position: 'relative' }}>
-                  <button onClick={() => { setNotificationsOpen(!notificationsOpen); setProfileOpen(false); setDigilockerOpen(false); }} style={{ width: 38, height: 38, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)', border: 'var(--border-width) solid var(--surface-border)', color: pendingAlerts.length > 0 ? '#ef4444' : followupsDueToday.length > 0 ? '#f59e0b' : 'var(--text-muted)', position: 'relative', cursor: 'pointer', transition: 'all 0.15s', animation: pendingAlerts.length > 0 ? 'bellShake 1s ease-in-out infinite' : followupsDueToday.length > 0 ? 'bellShake 3s ease-in-out infinite' : undefined }}>
+                  <button onClick={() => { setNotificationsOpen(!notificationsOpen); setProfileOpen(false); setDigilockerOpen(false); setThemeDropdownOpen(false); }} style={{ width: 38, height: 38, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)', border: 'var(--border-width) solid var(--surface-border)', color: pendingAlerts.length > 0 ? '#ef4444' : followupsDueToday.length > 0 ? '#f59e0b' : 'var(--text-muted)', position: 'relative', cursor: 'pointer', transition: 'all 0.15s', animation: pendingAlerts.length > 0 ? 'bellShake 1s ease-in-out infinite' : followupsDueToday.length > 0 ? 'bellShake 3s ease-in-out infinite' : undefined }}>
                     <Bell size={18} />
                     {(notifications.length > 0 || emailUnread > 0 || pendingAlerts.length > 0 || followupsDueToday.length > 0) && <span style={{ position: 'absolute', top: 6, right: 6, width: 10, height: 10, borderRadius: '50%', background: pendingAlerts.length > 0 ? '#ef4444' : followupsDueToday.length > 0 ? '#f59e0b' : emailUnread > 0 ? '#ef4444' : '#f472b6', border: '2px solid var(--surface)', animation: pendingAlerts.length > 0 ? 'alertIconPulse 1s ease-in-out infinite' : undefined }} />}
                   </button>
@@ -858,36 +1176,10 @@ export default function DashboardLayout({ children }) {
                   )}
                 </div>
 
-                {/* Avatar */}
-                <div style={{ position: 'relative' }}>
-                  <button onClick={() => { setProfileOpen(!profileOpen); setNotificationsOpen(false); setDigilockerOpen(false); }} style={{
-                    width: 38, height: 38, borderRadius: 12, border: 'none', cursor: 'pointer',
-                    background: user?.profilePicture ? 'transparent' : 'linear-gradient(135deg, var(--primary-light), var(--accent))',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'var(--primary-invert, #fff)', fontWeight: 700, fontSize: '0.85rem',
-                    boxShadow: 'var(--shadow-md)', overflow: 'hidden', padding: 0,
-                  }}>
-                    {user?.profilePicture ? (
-                      <img src={user.profilePicture} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : user?.name?.charAt(0)}
-                  </button>
-                  {profileOpen && (
-                    <div style={{ position: 'absolute', top: '120%', right: 0, width: 200, background: 'var(--surface-overlay)', border: 'var(--border-width) solid var(--surface-border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', zIndex: 100, padding: 8, backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)' }}>
-                      <div style={{ padding: '8px 12px', borderBottom: 'var(--border-width) solid var(--surface-border)', marginBottom: 8 }}>
-                        <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name}</p>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</p>
-                        {user?.id && <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace', marginTop: 4, background: 'var(--primary-glow)', padding: '2px 8px', borderRadius: 6, display: 'inline-block', letterSpacing: '0.04em' }}>{user.id}</p>}
-                      </div>
-                      <button onClick={() => { router.push('/dashboard/settings'); setProfileOpen(false); }} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text)', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background='var(--surface-hover)'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>Settings</button>
-                      <button onClick={handleLogout} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem', color: '#f87171', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.1)'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>Logout</button>
-                    </div>
-                  )}
-                </div>
-
                 {/* DigiLocker Unified Topbar Badge */}
                 <div style={{ position: 'relative' }}>
                   <button
-                    onClick={() => { setDigilockerOpen(!digilockerOpen); setNotificationsOpen(false); setProfileOpen(false); }}
+                    onClick={() => { setDigilockerOpen(!digilockerOpen); setNotificationsOpen(false); setProfileOpen(false); setThemeDropdownOpen(false); }}
                     title={digilockerStatus.verified ? 'DigiLocker Verified' : 'DigiLocker - Not Verified'}
                     style={{
                       display: 'flex',
@@ -1012,6 +1304,32 @@ export default function DashboardLayout({ children }) {
                           </>
                         )}
                       </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Avatar */}
+                <div style={{ position: 'relative' }}>
+                  <button onClick={() => { setProfileOpen(!profileOpen); setNotificationsOpen(false); setDigilockerOpen(false); setThemeDropdownOpen(false); }} style={{
+                    width: 38, height: 38, borderRadius: 12, border: 'none', cursor: 'pointer',
+                    background: user?.profilePicture ? 'transparent' : 'linear-gradient(135deg, var(--primary-light), var(--accent))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--primary-invert, #fff)', fontWeight: 700, fontSize: '0.85rem',
+                    boxShadow: 'var(--shadow-md)', overflow: 'hidden', padding: 0,
+                  }}>
+                    {user?.profilePicture ? (
+                      <img src={user.profilePicture} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : user?.name?.charAt(0)}
+                  </button>
+                  {profileOpen && (
+                    <div style={{ position: 'absolute', top: '120%', right: 0, width: 200, background: 'var(--surface-overlay)', border: 'var(--border-width) solid var(--surface-border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', zIndex: 100, padding: 8, backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)' }}>
+                      <div style={{ padding: '8px 12px', borderBottom: 'var(--border-width) solid var(--surface-border)', marginBottom: 8 }}>
+                        <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name}</p>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</p>
+                        {user?.id && <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace', marginTop: 4, background: 'var(--primary-glow)', padding: '2px 8px', borderRadius: 6, display: 'inline-block', letterSpacing: '0.04em' }}>{user.id}</p>}
+                      </div>
+                      <button onClick={() => { router.push('/dashboard/settings'); setProfileOpen(false); }} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text)', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background='var(--surface-hover)'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>Settings</button>
+                      <button onClick={handleLogout} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem', color: '#f87171', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background='rgba(248,113,113,0.1)'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>Logout</button>
                     </div>
                   )}
                 </div>

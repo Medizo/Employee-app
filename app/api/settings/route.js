@@ -82,6 +82,18 @@ export async function PUT(req) {
         );
       }
       break;
+    case 'fontSize': {
+      const parsed = parseInt(body.fontSize, 10);
+      const fsValue = !isNaN(parsed) ? parsed : 16;
+      users[idx].fontSize = fsValue;
+      const db = await getDb();
+      await db.collection('user_settings').updateOne(
+        { userId: session.id },
+        { $set: { fontSize: fsValue, updatedAt: new Date().toISOString() } },
+        { upsert: true }
+      );
+      break;
+    }
   }
 
   await writeData('users', users);
