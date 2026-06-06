@@ -158,6 +158,21 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 16px; scroll-behavior: smooth; }
 
+/* Prevent text selection and cursors/carets on UI layout elements, headings, buttons, and badges */
+h1, h2, h3, h4, h5, h6,
+button,
+.btn,
+.badge,
+header,
+.sidebar,
+.time-clock-pill,
+.workspace-action-btn {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
 body {
   font-family: var(--font-family);
   background: var(--bg);
