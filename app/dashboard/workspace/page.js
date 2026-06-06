@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const statusColors = { New: 'new', Contacted: 'contacted', Qualified: 'qualified', Proposal: 'proposal', Closed: 'closed', Lost: 'lost' };
 
@@ -33,6 +33,8 @@ const clientResponseOptions = [
 
 export default function WorkspacePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const expandId = searchParams.get('expand');
   const [leads, setLeads] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -40,6 +42,18 @@ export default function WorkspacePage() {
   const [loading, setLoading] = useState(true);
   const [editLead, setEditLead] = useState(null);
   const [showEdit, setShowEdit] = useState(false);
+
+  useEffect(() => {
+    if (expandId && leads.length > 0) {
+      setExpanded(expandId);
+      setTimeout(() => {
+        const el = document.getElementById(`lead-row-${expandId}`) || document.getElementById(`lead-card-${expandId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    }
+  }, [expandId, leads]);
 
   // Follow-up modal
   const [showFollowup, setShowFollowup] = useState(false);
@@ -348,7 +362,7 @@ export default function WorkspacePage() {
               <tbody>
                 {filtered.map((lead, i) => (
                   <React.Fragment key={`${lead.id}-${i}`}>
-                    <tr style={{ cursor: 'pointer' }} onClick={() => setExpanded(expanded === lead.id ? null : lead.id)}>
+                    <tr id={`lead-row-${lead.id}`} style={{ cursor: 'pointer' }} onClick={() => setExpanded(expanded === lead.id ? null : lead.id)}>
                       <td>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           <span style={{ transform: expanded === lead.id ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s', display: 'inline-block', fontSize: '0.7rem', color: 'var(--text-muted)' }}>▶</span>
@@ -428,6 +442,7 @@ export default function WorkspacePage() {
             {filtered.map((lead, i) => (
               <div 
                 key={`${lead.id}-mobile-${i}`} 
+                id={`lead-card-${lead.id}`}
                 className={`mobile-lead-card ${expanded === lead.id ? 'mobile-lead-card-active' : ''}`}
                 onClick={() => setExpanded(expanded === lead.id ? null : lead.id)}
               >

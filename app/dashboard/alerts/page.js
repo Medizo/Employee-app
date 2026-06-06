@@ -160,7 +160,7 @@ export default function EmployeeAlertsPage() {
                             )}
                           </div>
                         </div>
-                        <Link href={`/dashboard/workspace`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--primary)', fontSize: '0.78rem', fontWeight: 600, flexShrink: 0 }}>
+                        <Link href={`/dashboard/workspace?expand=${r.id}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--primary)', fontSize: '0.78rem', fontWeight: 600, flexShrink: 0 }}>
                           View <ArrowUpRight size={14} />
                         </Link>
                       </div>

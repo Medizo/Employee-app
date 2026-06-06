@@ -1148,7 +1148,7 @@ export default function DashboardLayout({ children }) {
                               <p style={{ fontSize: '0.7rem', fontWeight: 800, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.08em' }}>📅 Follow-ups Due ({followupsDueToday.length})</p>
                             </div>
                             {followupsDueToday.map(f => (
-                              <div key={f.id} style={{ padding: '12px 16px', borderBottom: '1px solid rgba(245,158,11,0.1)', background: f._diffDays < 0 ? 'rgba(239,68,68,0.03)' : 'rgba(245,158,11,0.03)', display: 'flex', gap: 10, alignItems: 'center', cursor: 'pointer' }} onClick={() => { router.push('/dashboard/workspace'); setNotificationsOpen(false); }}>
+                              <div key={f.id} style={{ padding: '12px 16px', borderBottom: '1px solid rgba(245,158,11,0.1)', background: f._diffDays < 0 ? 'rgba(239,68,68,0.03)' : 'rgba(245,158,11,0.03)', display: 'flex', gap: 10, alignItems: 'center', cursor: 'pointer' }} onClick={() => { router.push(`/dashboard/workspace?expand=${f.id}`); setNotificationsOpen(false); }}>
                                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: f._diffDays < 0 ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.8rem' }}>
                                   {f._diffDays < 0 ? '🔴' : '🟠'}
                                 </div>

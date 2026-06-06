@@ -64,7 +64,7 @@ export async function POST(req) {
     type: 'success',
     title: '🎯 New Lead Added',
     message: `${session.name || 'An employee'} added lead: ${newLead.companyName} (${newLead.contactPerson})`,
-    link: '/dashboard/leads',
+    link: `/dashboard/leads?expand=${newLead.id}`,
   });
 
   return NextResponse.json({ lead: newLead });
@@ -133,6 +133,13 @@ export async function DELETE(req) {
   };
 
   await db.collection('lead_deletion_requests').insertOne(request);
+
+  await notifyAdmins({
+    type: 'warning',
+    title: '⚠️ Lead Deletion Requested',
+    message: `${session.name || 'An employee'} requested deletion of lead: ${lead.companyName} (${lead.contactPerson})`,
+    link: `/dashboard/leads?expand=${lead.id}`,
+  });
 
   // Mark the lead as having a pending deletion request
   const idx = leads.findIndex(l => l.id === id);
