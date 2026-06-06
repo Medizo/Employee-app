@@ -230,6 +230,19 @@ export default function WorkspacePage() {
                         >
                           <span style={{ fontSize: '0.72rem' }}>📋</span> Follow Up
                         </button>
+                        <button
+                          className="workspace-action-btn workspace-action-conversation"
+                          onClick={() => {
+                            if (lead.email) {
+                              router.push(`/dashboard/workspace/email?tab=threads&leadEmail=${encodeURIComponent(lead.email)}`);
+                            } else {
+                              alert("This lead doesn't have an email address configured.");
+                            }
+                          }}
+                          title="View Conversation"
+                        >
+                          <span style={{ fontSize: '0.72rem' }}>💬</span> Conversation
+                        </button>
                         <button className="btn btn-ghost btn-sm" onClick={() => { setEditLead({...lead}); setShowEdit(true); }} title="Edit" style={{ padding: '4px 8px' }}>✏️</button>
                         <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(lead.id)} title={lead.deletionRequested ? 'Deletion pending approval' : 'Request Delete'} disabled={lead.deletionRequested} style={{ padding: '4px 8px', opacity: lead.deletionRequested ? 0.4 : 1 }}>🗑️</button>
                       </div>
@@ -637,6 +650,16 @@ export default function WorkspacePage() {
         .workspace-action-followup:hover {
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+          filter: brightness(1.08);
+        }
+        .workspace-action-conversation {
+          background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+          color: #fff;
+          box-shadow: 0 2px 6px rgba(139, 92, 246, 0.3);
+        }
+        .workspace-action-conversation:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
           filter: brightness(1.08);
         }
         @media (max-width: 768px) {

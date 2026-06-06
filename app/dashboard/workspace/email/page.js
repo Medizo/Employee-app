@@ -27,6 +27,11 @@ export default function EmailPage() {
     if (t && ['compose', 'inbox', 'sent', 'threads'].includes(t)) {
       setTab(t);
     }
+    const leadEmail = searchParams.get('leadEmail');
+    if (leadEmail) {
+      setOpenThread(leadEmail);
+      setTab('threads');
+    }
   }, [searchParams]);
 
   // AI states
