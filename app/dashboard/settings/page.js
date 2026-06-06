@@ -248,17 +248,17 @@ export default function SettingsPage() {
                     marginLeft: 'auto',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 10,
-                    padding: '8px 18px',
-                    borderRadius: 24,
+                    gap: 16,
+                    padding: '10px 24px',
+                    borderRadius: 50,
                     background: 'rgba(16, 185, 129, 0.08)',
                     border: '1.5px solid rgba(16, 185, 129, 0.35)',
                     color: '#059669',
                     fontWeight: 700,
-                    fontSize: '0.88rem',
-                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.05)',
+                    fontSize: '1.1rem',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.06)',
                   }}>
-                    <img src="/DigiLocker.png" alt="DigiLocker Verified" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+                    <img src="/DigiLocker.png" alt="DigiLocker Verified" style={{ width: 84, height: 84, objectFit: 'contain' }} />
                     <span>DigiLocker Verified</span>
                   </div>
                 )}
