@@ -223,13 +223,26 @@ export default function WorkspacePage() {
                         >
                           <span style={{ fontSize: '0.72rem' }}>✉️</span> Email
                         </button>
-                        <button
-                          className="workspace-action-btn workspace-action-followup"
-                          onClick={() => openFollowup(lead)}
-                          title="Log Follow-up"
-                        >
-                          <span style={{ fontSize: '0.72rem' }}>📋</span> Follow Up
-                        </button>
+                        {(() => {
+                          const hasFollowup = !!lead.nextFollowupDate;
+                          const followupDate = hasFollowup ? new Date(lead.nextFollowupDate) : null;
+                          const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+                          const isOverdue = followupDate && followupDate < todayStart;
+                          const isToday = followupDate && followupDate.toDateString() === new Date().toDateString();
+                          const formattedDate = followupDate ? followupDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+                          const titleText = hasFollowup
+                            ? `Follow-up ${isOverdue ? 'OVERDUE' : isToday ? 'due TODAY' : 'scheduled'}: ${formattedDate}`
+                            : 'Log Follow-up';
+                          return (
+                            <button
+                              className={`workspace-action-btn ${hasFollowup ? (isOverdue ? 'workspace-action-followup-overdue' : isToday ? 'workspace-action-followup-today' : 'workspace-action-followup-scheduled') : 'workspace-action-followup'}`}
+                              onClick={() => openFollowup(lead)}
+                              title={titleText}
+                            >
+                              <span style={{ fontSize: '0.72rem' }}>{isOverdue ? '🔴' : isToday ? '🟠' : hasFollowup ? '📅' : '📋'}</span> Follow Up
+                            </button>
+                          );
+                        })()}
                         <button
                           className="workspace-action-btn workspace-action-conversation"
                           onClick={() => {
@@ -661,6 +674,42 @@ export default function WorkspacePage() {
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
           filter: brightness(1.08);
+        }
+        .workspace-action-followup-overdue {
+          background: linear-gradient(135deg, #ef4444, #dc2626);
+          color: #fff;
+          box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+          animation: followupPulse 2s ease-in-out infinite;
+        }
+        .workspace-action-followup-overdue:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 14px rgba(239, 68, 68, 0.5);
+          filter: brightness(1.08);
+        }
+        .workspace-action-followup-today {
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+          color: #fff;
+          box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
+          animation: followupPulse 2.5s ease-in-out infinite;
+        }
+        .workspace-action-followup-today:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 14px rgba(245, 158, 11, 0.5);
+          filter: brightness(1.08);
+        }
+        .workspace-action-followup-scheduled {
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: #fff;
+          box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+        }
+        .workspace-action-followup-scheduled:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+          filter: brightness(1.08);
+        }
+        @keyframes followupPulse {
+          0%, 100% { box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3); }
+          50% { box-shadow: 0 2px 14px rgba(239, 68, 68, 0.6); }
         }
         @media (max-width: 768px) {
           .workspace-action-btn {
