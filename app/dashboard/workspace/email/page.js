@@ -22,6 +22,13 @@ export default function EmailPage() {
   const [replySending, setReplySending] = useState(false);
   const [replySuccess, setReplySuccess] = useState(false);
 
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t && ['compose', 'inbox', 'sent', 'threads'].includes(t)) {
+      setTab(t);
+    }
+  }, [searchParams]);
+
   // AI states
   const [aiContext, setAiContext] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
