@@ -784,14 +784,14 @@ export default function DashboardLayout({ children }) {
                       </button>
 
                       {colorDropdownOpen && (
-                        <div style={{
+                        <div className="header-dropdown" style={{
                           position: 'absolute',
                           top: 'calc(100% - 4px)',
                           right: 0,
                           padding: '12px 0px',
                           zIndex: 100,
                         }}>
-                          <div style={{
+                          <div className="header-dropdown-inner" style={{
                             width: 200,
                             background: 'var(--surface-overlay)',
                             border: 'var(--border-width) solid var(--surface-border)',
@@ -884,14 +884,14 @@ export default function DashboardLayout({ children }) {
                   </button>
 
                   {fontSizeDropdownOpen && (
-                    <div style={{
+                    <div className="header-dropdown" style={{
                       position: 'absolute',
                       top: 'calc(100% - 4px)',
                       right: 0,
                       padding: '12px 0px',
                       zIndex: 100,
                     }}>
-                      <div style={{
+                      <div className="header-dropdown-inner" style={{
                         width: 200,
                         background: 'var(--surface-overlay)',
                         border: 'var(--border-width) solid var(--surface-border)',
@@ -1112,7 +1112,7 @@ export default function DashboardLayout({ children }) {
                     {(notifications.length > 0 || emailUnread > 0 || pendingAlerts.length > 0 || followupsDueToday.length > 0) && <span style={{ position: 'absolute', top: 6, right: 6, width: 10, height: 10, borderRadius: '50%', background: pendingAlerts.length > 0 ? '#ef4444' : followupsDueToday.length > 0 ? '#f59e0b' : emailUnread > 0 ? '#ef4444' : '#f472b6', border: '2px solid var(--surface)', animation: pendingAlerts.length > 0 ? 'alertIconPulse 1s ease-in-out infinite' : undefined }} />}
                   </button>
                   {notificationsOpen && (
-                    <div style={{ position: 'absolute', top: '120%', right: 0, width: 320, background: 'var(--surface-overlay)', border: 'var(--border-width) solid var(--surface-border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', zIndex: 100, overflow: 'hidden', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)' }}>
+                    <div className="header-dropdown" style={{ position: 'absolute', top: '120%', right: 0, width: 320, background: 'var(--surface-overlay)', border: 'var(--border-width) solid var(--surface-border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', zIndex: 100, overflow: 'hidden', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)' }}>
                       <div style={{ padding: '12px 16px', borderBottom: 'var(--border-width) solid var(--surface-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <h4 style={{ fontWeight: 600, fontSize: '0.9rem' }}>Notifications</h4>
                         <button onClick={clearNotifications} style={{ fontSize: '0.75rem', color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer' }}>Clear</button>
@@ -1220,7 +1220,7 @@ export default function DashboardLayout({ children }) {
                   </button>
 
                   {digilockerOpen && (
-                    <div style={{
+                    <div className="header-dropdown" style={{
                       position: 'absolute', top: '120%', right: 0, width: 320,
                       background: 'var(--surface-overlay)', border: 'var(--border-width) solid var(--surface-border)',
                       borderRadius: 14, boxShadow: 'var(--shadow-md)', zIndex: 100, overflow: 'hidden',
@@ -1322,7 +1322,7 @@ export default function DashboardLayout({ children }) {
                     ) : user?.name?.charAt(0)}
                   </button>
                   {profileOpen && (
-                    <div style={{ position: 'absolute', top: '120%', right: 0, width: 200, background: 'var(--surface-overlay)', border: 'var(--border-width) solid var(--surface-border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', zIndex: 100, padding: 8, backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)' }}>
+                    <div className="header-dropdown" style={{ position: 'absolute', top: '120%', right: 0, width: 200, background: 'var(--surface-overlay)', border: 'var(--border-width) solid var(--surface-border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', zIndex: 100, padding: 8, backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)' }}>
                       <div style={{ padding: '8px 12px', borderBottom: 'var(--border-width) solid var(--surface-border)', marginBottom: 8 }}>
                         <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name}</p>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</p>
@@ -1349,6 +1349,19 @@ export default function DashboardLayout({ children }) {
             main { margin-left: 0 !important; }
             .mobile-menu-btn { display: flex !important; }
             .time-clock-pill { display: none !important; }
+            .header-dropdown {
+              position: fixed !important;
+              top: 72px !important;
+              left: 16px !important;
+              right: 16px !important;
+              width: auto !important;
+              max-width: none !important;
+              transform: none !important;
+              z-index: 9999 !important;
+            }
+            .header-dropdown-inner {
+              width: 100% !important;
+            }
           }
           @media (min-width: 769px) and (max-width: 1024px) {
             .time-clock-label { display: none !important; }

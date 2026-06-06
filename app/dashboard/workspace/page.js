@@ -150,6 +150,155 @@ export default function WorkspacePage() {
     return activityTypeColors[type] || activityTypeColors['Note'];
   };
 
+  const renderExpandedDetails = (lead) => {
+    const leadEmail = lead.email?.toLowerCase();
+    const sentToLead = allEmails.filter(e => e.to?.toLowerCase() === leadEmail);
+    const receivedFromLead = allReplies.filter(r => r.fromEmail?.toLowerCase() === leadEmail);
+    
+    const emailActivities = [
+      ...sentToLead.map(s => ({ type: 'Email', timestamp: s.sentAt, description: `📤 Sent: ${s.subject}\n${(s.body || '').substring(0, 150)}${s.body?.length > 150 ? '...' : ''}` })),
+      ...receivedFromLead.map(r => ({ type: 'Email', timestamp: r.receivedAt, description: `📥 Received: ${r.subject}\n${(r.bodyPreview || '').substring(0, 150)}${r.bodyPreview?.length > 150 ? '...' : ''}` }))
+    ];
+
+    // Filter out admin-only activities (reassignment logs) from employee view
+    const employeeActivities = (lead.activities || []).filter(a => 
+      a.type !== 'Reassignment' && 
+      !a.adminOnly && 
+      !(a.description && a.description.toLowerCase().includes('reassigned'))
+    );
+
+    const combinedActivities = [...employeeActivities, ...emailActivities].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    return (
+      <div style={{ padding: '20px 24px', background: 'var(--bg-secondary)', animation: 'slideUp 0.3s ease' }} onClick={e => e.stopPropagation()}>
+        {/* Admin Notes & Comments Panel */}
+        {(lead.notes || (lead.activities || []).some(a => a.type === 'Admin Comment')) && (
+          <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+            {/* Admin Notes */}
+            {lead.notes && (
+              <div style={{ flex: '1 1 280px', padding: '14px 16px', borderRadius: 12, background: 'rgba(16,185,129,0.05)', border: '1.5px solid rgba(16,185,129,0.18)' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#059669', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  📝 Admin Notes
+                </div>
+                <p style={{ fontSize: '0.84rem', color: 'var(--text)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>{lead.notes}</p>
+              </div>
+            )}
+
+            {/* Latest Admin Comments */}
+            {(() => {
+              const adminComments = (lead.activities || []).filter(a => a.type === 'Admin Comment').sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+              if (adminComments.length === 0) return null;
+              return (
+                <div style={{ flex: '1 1 280px', padding: '14px 16px', borderRadius: 12, background: 'rgba(99,102,241,0.05)', border: '1.5px solid rgba(99,102,241,0.18)' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6366f1', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    💬 Admin Comments ({adminComments.length})
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 140, overflowY: 'auto' }}>
+                    {adminComments.slice(0, 5).map((c, ci) => (
+                      <div key={ci} style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(99,102,241,0.06)', borderLeft: '3px solid #6366f1' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#6366f1' }}>{c.by || 'Admin'}</span>
+                          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{new Date(c.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                        </div>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text)', margin: 0, lineHeight: 1.5 }}>{c.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h4 style={{ fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>📋</span> Activity History
+            {combinedActivities.length > 0 && (
+              <span style={{
+                background: 'var(--primary-glow)', color: 'var(--primary)',
+                padding: '2px 8px', borderRadius: 50, fontSize: '0.72rem', fontWeight: 700,
+              }}>
+                {combinedActivities.length}
+              </span>
+            )}
+          </h4>
+          <button
+            className="btn btn-sm btn-primary"
+            onClick={(e) => { e.stopPropagation(); openFollowup(lead); }}
+            style={{ padding: '5px 12px', fontSize: '0.75rem' }}
+          >
+            + Add Follow-up
+          </button>
+        </div>
+        {combinedActivities.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
+            {/* Timeline line */}
+            <div style={{
+              position: 'absolute', left: 15, top: 12, bottom: 12,
+              width: 2, background: 'var(--surface-border)', borderRadius: 1,
+            }} />
+            {combinedActivities.map((a, ai) => {
+              const style = getActivityStyle(a.type);
+              return (
+                <div key={`${a.id}-${ai}`} style={{
+                  display: 'flex', gap: 16, padding: '12px 0',
+                  position: 'relative', marginLeft: 0,
+                }}>
+                  {/* Timeline dot */}
+                  <div style={{
+                    width: 30, height: 30, borderRadius: '50%',
+                    background: style.bg, border: `2px solid ${style.color}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, fontSize: '0.75rem', zIndex: 1,
+                  }}>
+                    {style.icon}
+                  </div>
+                  {/* Content */}
+                  <div style={{
+                    flex: 1, background: 'var(--surface)', borderRadius: 10,
+                    padding: '12px 16px', border: '1px solid var(--surface-border)',
+                    transition: 'box-shadow 0.2s',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                        {new Date(a.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '2px 10px', borderRadius: 50,
+                        fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        background: style.bg, color: style.color,
+                      }}>
+                        {a.type}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{a.description}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{
+            textAlign: 'center', padding: '24px 16px',
+            color: 'var(--text-muted)', fontSize: '0.85rem',
+            background: 'var(--surface)', borderRadius: 10,
+            border: '1px dashed var(--surface-border)',
+          }}>
+            <p style={{ marginBottom: 8 }}>No activities yet</p>
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={(e) => { e.stopPropagation(); openFollowup(lead); }}
+            >
+              Log first follow-up →
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="animate-fade">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
@@ -180,248 +329,219 @@ export default function WorkspacePage() {
           <p>No leads found. <Link href="/dashboard/workspace/add">Add your first lead</Link></p>
         </div>
       ) : (
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th style={{ width: 40 }}>#</th>
-                <th>Company</th>
-                <th>Contact</th>
-                <th className="hide-mobile">Email</th>
-                <th className="hide-mobile">Phone</th>
-                <th className="hide-mobile">Service</th>
-                <th>Status</th>
-                <th className="hide-mobile">Last Activity</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((lead, i) => (
-                <React.Fragment key={`${lead.id}-${i}`}>
-                  <tr style={{ cursor: 'pointer' }} onClick={() => setExpanded(expanded === lead.id ? null : lead.id)}>
-                    <td>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ transform: expanded === lead.id ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s', display: 'inline-block', fontSize: '0.7rem', color: 'var(--text-muted)' }}>▶</span>
-                        {i + 1}
-                      </span>
-                    </td>
-                    <td><strong>{lead.companyName}</strong></td>
-                    <td>{lead.contactPerson}</td>
-                    <td className="hide-mobile" style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{lead.email || <span style={{ fontStyle: 'italic', opacity: 0.5 }}>—</span>}</td>
-                    <td className="hide-mobile">{lead.phone}</td>
-                    <td className="hide-mobile">{lead.servicesInterested?.join(', ') || '-'}</td>
-                    <td><span className={`badge badge-${statusColors[lead.status] || 'new'}`}>{lead.status}</span>
-                      {lead.deletionRequested && <span style={{ display: 'inline-block', marginLeft: 6, padding: '2px 8px', borderRadius: 50, fontSize: '0.65rem', fontWeight: 700, background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}>⏳ Deletion Pending</span>}
-                    </td>
-                    <td className="hide-mobile" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(lead.updatedAt).toLocaleDateString()}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap' }} onClick={e => e.stopPropagation()}>
-                        <button
-                          className="workspace-action-btn workspace-action-email"
-                          onClick={() => router.push(`/dashboard/workspace/email?lead=${lead.id}`)}
-                          title="Send Email"
-                        >
-                          <span style={{ fontSize: '0.72rem' }}>✉️</span> Email
-                        </button>
-                        {(() => {
-                          const hasFollowup = !!lead.nextFollowupDate;
-                          const followupDate = hasFollowup ? new Date(lead.nextFollowupDate) : null;
-                          const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-                          const isOverdue = followupDate && followupDate < todayStart;
-                          const isToday = followupDate && followupDate.toDateString() === new Date().toDateString();
-                          const formattedDate = followupDate ? followupDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-                          const titleText = hasFollowup
-                            ? `Follow-up ${isOverdue ? 'OVERDUE' : isToday ? 'due TODAY' : 'scheduled'}: ${formattedDate}`
-                            : 'Log Follow-up';
-                          return (
-                            <button
-                              className={`workspace-action-btn ${hasFollowup ? (isOverdue ? 'workspace-action-followup-overdue' : isToday ? 'workspace-action-followup-today' : 'workspace-action-followup-scheduled') : 'workspace-action-followup'}`}
-                              onClick={() => openFollowup(lead)}
-                              title={titleText}
-                            >
-                              <span style={{ fontSize: '0.72rem' }}>{isOverdue ? '🔴' : isToday ? '🟠' : hasFollowup ? '📅' : '📋'}</span> Follow Up
-                            </button>
-                          );
-                        })()}
-                        <button
-                          className="workspace-action-btn workspace-action-conversation"
-                          onClick={() => {
-                            if (lead.email) {
-                              router.push(`/dashboard/workspace/email?tab=threads&leadEmail=${encodeURIComponent(lead.email)}`);
-                            } else {
-                              alert("This lead doesn't have an email address configured.");
-                            }
-                          }}
-                          title="View Conversation"
-                        >
-                          <span style={{ fontSize: '0.72rem' }}>💬</span> Conversation
-                        </button>
-                        <button className="btn btn-ghost btn-sm" onClick={() => { setEditLead({...lead}); setShowEdit(true); }} title="Edit" style={{ padding: '4px 8px' }}>✏️</button>
-                        <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(lead.id)} title={lead.deletionRequested ? 'Deletion pending approval' : 'Request Delete'} disabled={lead.deletionRequested} style={{ padding: '4px 8px', opacity: lead.deletionRequested ? 0.4 : 1 }}>🗑️</button>
-                      </div>
-                    </td>
-                  </tr>
-                  {expanded === lead.id && (
-                    <tr key={lead.id + '-exp'}>
-                      <td colSpan={9} style={{ padding: 0 }}>
-                        <div style={{ padding: '20px 24px', background: 'var(--bg-secondary)', animation: 'slideUp 0.3s ease' }}>
+        <>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: 40 }}>#</th>
+                  <th>Company</th>
+                  <th>Contact</th>
+                  <th className="hide-mobile">Email</th>
+                  <th className="hide-mobile">Phone</th>
+                  <th className="hide-mobile">Service</th>
+                  <th>Status</th>
+                  <th className="hide-mobile">Last Activity</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((lead, i) => (
+                  <React.Fragment key={`${lead.id}-${i}`}>
+                    <tr style={{ cursor: 'pointer' }} onClick={() => setExpanded(expanded === lead.id ? null : lead.id)}>
+                      <td>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ transform: expanded === lead.id ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s', display: 'inline-block', fontSize: '0.7rem', color: 'var(--text-muted)' }}>▶</span>
+                          {i + 1}
+                        </span>
+                      </td>
+                      <td><strong>{lead.companyName}</strong></td>
+                      <td>{lead.contactPerson}</td>
+                      <td className="hide-mobile" style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{lead.email || <span style={{ fontStyle: 'italic', opacity: 0.5 }}>—</span>}</td>
+                      <td className="hide-mobile">{lead.phone}</td>
+                      <td className="hide-mobile">{lead.servicesInterested?.join(', ') || '-'}</td>
+                      <td><span className={`badge badge-${statusColors[lead.status] || 'new'}`}>{lead.status}</span>
+                        {lead.deletionRequested && <span style={{ display: 'inline-block', marginLeft: 6, padding: '2px 8px', borderRadius: 50, fontSize: '0.65rem', fontWeight: 700, background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}>⏳ Deletion Pending</span>}
+                      </td>
+                      <td className="hide-mobile" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(lead.updatedAt).toLocaleDateString()}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap' }} onClick={e => e.stopPropagation()}>
+                          <button
+                            className="workspace-action-btn workspace-action-email"
+                            onClick={() => router.push(`/dashboard/workspace/email?lead=${lead.id}`)}
+                            title="Send Email"
+                          >
+                            <span style={{ fontSize: '0.72rem' }}>✉️</span> Email
+                          </button>
                           {(() => {
-                            const leadEmail = lead.email?.toLowerCase();
-                            const sentToLead = allEmails.filter(e => e.to?.toLowerCase() === leadEmail);
-                            const receivedFromLead = allReplies.filter(r => r.fromEmail?.toLowerCase() === leadEmail);
-                            
-                            const emailActivities = [
-                              ...sentToLead.map(s => ({ type: 'Email', timestamp: s.sentAt, description: `📤 Sent: ${s.subject}\n${(s.body || '').substring(0, 150)}${s.body?.length > 150 ? '...' : ''}` })),
-                              ...receivedFromLead.map(r => ({ type: 'Email', timestamp: r.receivedAt, description: `📥 Received: ${r.subject}\n${(r.bodyPreview || '').substring(0, 150)}${r.bodyPreview?.length > 150 ? '...' : ''}` }))
-                            ];
-
-                            // Filter out admin-only activities (reassignment logs) from employee view
-                            const employeeActivities = (lead.activities || []).filter(a => 
-                              a.type !== 'Reassignment' && 
-                              !a.adminOnly && 
-                              !(a.description && a.description.toLowerCase().includes('reassigned'))
-                            );
-
-                            const combinedActivities = [...employeeActivities, ...emailActivities].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
+                            const hasFollowup = !!lead.nextFollowupDate;
+                            const followupDate = hasFollowup ? new Date(lead.nextFollowupDate) : null;
+                            const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+                            const isOverdue = followupDate && followupDate < todayStart;
+                            const isToday = followupDate && followupDate.toDateString() === new Date().toDateString();
+                            const formattedDate = followupDate ? followupDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+                            const titleText = hasFollowup
+                              ? `Follow-up ${isOverdue ? 'OVERDUE' : isToday ? 'due TODAY' : 'scheduled'}: ${formattedDate}`
+                              : 'Log Follow-up';
                             return (
-                              <>
-                                {/* Admin Notes & Comments Panel */}
-                                {(lead.notes || (lead.activities || []).some(a => a.type === 'Admin Comment')) && (
-                                  <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-                                    {/* Admin Notes */}
-                                    {lead.notes && (
-                                      <div style={{ flex: '1 1 280px', padding: '14px 16px', borderRadius: 12, background: 'rgba(16,185,129,0.05)', border: '1.5px solid rgba(16,185,129,0.18)' }}>
-                                        <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#059669', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                          📝 Admin Notes
-                                        </div>
-                                        <p style={{ fontSize: '0.84rem', color: 'var(--text)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>{lead.notes}</p>
-                                      </div>
-                                    )}
-
-                                    {/* Latest Admin Comments */}
-                                    {(() => {
-                                      const adminComments = (lead.activities || []).filter(a => a.type === 'Admin Comment').sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                                      if (adminComments.length === 0) return null;
-                                      return (
-                                        <div style={{ flex: '1 1 280px', padding: '14px 16px', borderRadius: 12, background: 'rgba(99,102,241,0.05)', border: '1.5px solid rgba(99,102,241,0.18)' }}>
-                                          <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6366f1', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                            💬 Admin Comments ({adminComments.length})
-                                          </div>
-                                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 140, overflowY: 'auto' }}>
-                                            {adminComments.slice(0, 5).map((c, ci) => (
-                                              <div key={ci} style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(99,102,241,0.06)', borderLeft: '3px solid #6366f1' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                                                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#6366f1' }}>{c.by || 'Admin'}</span>
-                                                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{new Date(c.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
-                                                </div>
-                                                <p style={{ fontSize: '0.82rem', color: 'var(--text)', margin: 0, lineHeight: 1.5 }}>{c.description}</p>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      );
-                                    })()}
-                                  </div>
-                                )}
-
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                                  <h4 style={{ fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span>📋</span> Activity History
-                                    {combinedActivities.length > 0 && (
-                                      <span style={{
-                                        background: 'var(--primary-glow)', color: 'var(--primary)',
-                                        padding: '2px 8px', borderRadius: 50, fontSize: '0.72rem', fontWeight: 700,
-                                      }}>
-                                        {combinedActivities.length}
-                                      </span>
-                                    )}
-                                  </h4>
-                                  <button
-                                    className="btn btn-sm btn-primary"
-                                    onClick={(e) => { e.stopPropagation(); openFollowup(lead); }}
-                                    style={{ padding: '5px 12px', fontSize: '0.75rem' }}
-                                  >
-                                    + Add Follow-up
-                                  </button>
-                                </div>
-                                {combinedActivities.length > 0 ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
-                              {/* Timeline line */}
-                              <div style={{
-                                position: 'absolute', left: 15, top: 12, bottom: 12,
-                                width: 2, background: 'var(--surface-border)', borderRadius: 1,
-                              }} />
-                              {combinedActivities.map((a, ai) => {
-                                const style = getActivityStyle(a.type);
-                                return (
-                                  <div key={`${a.id}-${ai}`} style={{
-                                    display: 'flex', gap: 16, padding: '12px 0',
-                                    position: 'relative', marginLeft: 0,
-                                  }}>
-                                    {/* Timeline dot */}
-                                    <div style={{
-                                      width: 30, height: 30, borderRadius: '50%',
-                                      background: style.bg, border: `2px solid ${style.color}`,
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                      flexShrink: 0, fontSize: '0.75rem', zIndex: 1,
-                                    }}>
-                                      {style.icon}
-                                    </div>
-                                    {/* Content */}
-                                    <div style={{
-                                      flex: 1, background: 'var(--surface)', borderRadius: 10,
-                                      padding: '12px 16px', border: '1px solid var(--surface-border)',
-                                      transition: 'box-shadow 0.2s',
-                                    }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
-                                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                                          {new Date(a.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                        </span>
-                                        <span style={{
-                                          display: 'inline-flex', alignItems: 'center', gap: 4,
-                                          padding: '2px 10px', borderRadius: 50,
-                                          fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
-                                          letterSpacing: '0.04em',
-                                          background: style.bg, color: style.color,
-                                        }}>
-                                          {a.type}
-                                        </span>
-                                      </div>
-                                      <p style={{ fontSize: '0.85rem', color: 'var(--text)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{a.description}</p>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <div style={{
-                              textAlign: 'center', padding: '24px 16px',
-                              color: 'var(--text-muted)', fontSize: '0.85rem',
-                              background: 'var(--surface)', borderRadius: 10,
-                              border: '1px dashed var(--surface-border)',
-                            }}>
-                              <p style={{ marginBottom: 8 }}>No activities yet</p>
                               <button
-                                className="btn btn-sm btn-secondary"
-                                onClick={(e) => { e.stopPropagation(); openFollowup(lead); }}
+                                className={`workspace-action-btn ${hasFollowup ? (isOverdue ? 'workspace-action-followup-overdue' : isToday ? 'workspace-action-followup-today' : 'workspace-action-followup-scheduled') : 'workspace-action-followup'}`}
+                                onClick={() => openFollowup(lead)}
+                                title={titleText}
                               >
-                                Log first follow-up →
+                                <span style={{ fontSize: '0.72rem' }}>{isOverdue ? '🔴' : isToday ? '🟠' : hasFollowup ? '📅' : '📋'}</span> Follow Up
                               </button>
-                            </div>
-                          )}
-                              </>
                             );
                           })()}
+                          <button
+                            className="workspace-action-btn workspace-action-conversation"
+                            onClick={() => {
+                              if (lead.email) {
+                                router.push(`/dashboard/workspace/email?tab=threads&leadEmail=${encodeURIComponent(lead.email)}`);
+                              } else {
+                                alert("This lead doesn't have an email address configured.");
+                              }
+                            }}
+                            title="View Conversation"
+                          >
+                            <span style={{ fontSize: '0.72rem' }}>💬</span> Conversation
+                          </button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => { setEditLead({...lead}); setShowEdit(true); }} title="Edit" style={{ padding: '4px 8px' }}>✏️</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(lead.id)} title={lead.deletionRequested ? 'Deletion pending approval' : 'Request Delete'} disabled={lead.deletionRequested} style={{ padding: '4px 8px', opacity: lead.deletionRequested ? 0.4 : 1 }}>🗑️</button>
                         </div>
                       </td>
                     </tr>
+                    {expanded === lead.id && (
+                      <tr key={lead.id + '-exp'}>
+                        <td colSpan={9} style={{ padding: 0 }}>
+                          {renderExpandedDetails(lead)}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mobile-leads-list">
+            {filtered.map((lead, i) => (
+              <div 
+                key={`${lead.id}-mobile-${i}`} 
+                className={`mobile-lead-card ${expanded === lead.id ? 'mobile-lead-card-active' : ''}`}
+                onClick={() => setExpanded(expanded === lead.id ? null : lead.id)}
+              >
+                <div className="mobile-lead-header">
+                  <span className="mobile-lead-index">
+                    <span style={{ transform: expanded === lead.id ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s', display: 'inline-block', fontSize: '0.65rem', marginRight: 6, color: 'var(--text-muted)' }}>▶</span>
+                    Lead #{i + 1}
+                  </span>
+                  <span className={`badge badge-${statusColors[lead.status] || 'new'}`}>{lead.status}</span>
+                </div>
+
+                <div style={{ marginTop: 2 }}>
+                  <h4 className="mobile-lead-title" style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text)', margin: '0 0 6px' }}>{lead.companyName}</h4>
+                  <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    👤 {lead.contactPerson}
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4, background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--surface-border)' }}>
+                  {lead.email && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'var(--text)' }}>
+                      <span style={{ opacity: 0.7 }}>✉️</span>
+                      <span style={{ wordBreak: 'break-all', fontWeight: 500 }}>{lead.email}</span>
+                    </div>
                   )}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  {lead.phone && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'var(--text)' }}>
+                      <span style={{ opacity: 0.7 }}>📞</span>
+                      <span style={{ fontWeight: 500 }}>{lead.phone}</span>
+                    </div>
+                  )}
+                  {lead.servicesInterested && lead.servicesInterested.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'var(--text)' }}>
+                      <span style={{ opacity: 0.7 }}>💼</span>
+                      <span style={{ fontWeight: 500 }}>{lead.servicesInterested.join(', ')}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'var(--text-muted)', borderTop: '1px solid var(--surface-border)', paddingTop: 6, marginTop: 4 }}>
+                    <span style={{ opacity: 0.7 }}>📅</span>
+                    <span>Last Active: {new Date(lead.updatedAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+
+                {lead.deletionRequested && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700, background: 'rgba(239,68,68,0.08)', color: '#ef4444', marginTop: 4 }}>
+                    ⏳ Deletion Pending Approval
+                  </div>
+                )}
+
+                <div className="mobile-lead-actions" onClick={e => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, borderTop: '1px solid var(--surface-border)', paddingTop: 14, marginTop: 4 }}>
+                  <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+                    <button
+                      className="workspace-action-btn workspace-action-email"
+                      onClick={() => router.push(`/dashboard/workspace/email?lead=${lead.id}`)}
+                      title="Send Email"
+                      style={{ flex: 1, justifyContent: 'center', padding: '8px 10px', borderRadius: '10px' }}
+                    >
+                      <span>✉️</span> Email
+                    </button>
+                    {(() => {
+                      const hasFollowup = !!lead.nextFollowupDate;
+                      const followupDate = hasFollowup ? new Date(lead.nextFollowupDate) : null;
+                      const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+                      const isOverdue = followupDate && followupDate < todayStart;
+                      const isToday = followupDate && followupDate.toDateString() === new Date().toDateString();
+                      const formattedDate = followupDate ? followupDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+                      const titleText = hasFollowup
+                        ? `Follow-up ${isOverdue ? 'OVERDUE' : isToday ? 'due TODAY' : 'scheduled'}: ${formattedDate}`
+                        : 'Log Follow-up';
+                      return (
+                        <button
+                          className={`workspace-action-btn ${hasFollowup ? (isOverdue ? 'workspace-action-followup-overdue' : isToday ? 'workspace-action-followup-today' : 'workspace-action-followup-scheduled') : 'workspace-action-followup'}`}
+                          onClick={() => openFollowup(lead)}
+                          title={titleText}
+                          style={{ flex: 1.3, justifyContent: 'center', padding: '8px 10px', borderRadius: '10px' }}
+                        >
+                          <span>{isOverdue ? '🔴' : isToday ? '🟠' : hasFollowup ? '📅' : '📋'}</span> Follow Up
+                        </button>
+                      );
+                    })()}
+                    <button
+                      className="workspace-action-btn workspace-action-conversation"
+                      onClick={() => {
+                        if (lead.email) {
+                          router.push(`/dashboard/workspace/email?tab=threads&leadEmail=${encodeURIComponent(lead.email)}`);
+                        } else {
+                          alert("This lead doesn't have an email address configured.");
+                        }
+                      }}
+                      title="View Conversation"
+                      style={{ flex: 1, justifyContent: 'center', padding: '8px 10px', borderRadius: '10px' }}
+                    >
+                      <span>💬</span> Chat
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, width: '100%', marginTop: 2 }}>
+                    <button className="btn btn-ghost btn-sm" onClick={() => { setEditLead({...lead}); setShowEdit(true); }} style={{ flex: 1, padding: '8px 12px', fontSize: '0.78rem', border: '1px solid var(--surface-border)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'var(--surface)' }}>
+                      ✏️ Edit
+                    </button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(lead.id)} disabled={lead.deletionRequested} style={{ flex: 1, padding: '8px 12px', fontSize: '0.78rem', border: '1px solid var(--surface-border)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#ef4444', opacity: lead.deletionRequested ? 0.4 : 1, background: 'var(--surface)' }}>
+                      🗑️ Delete
+                    </button>
+                  </div>
+                </div>
+
+                {expanded === lead.id && (
+                  <div className="mobile-lead-expanded-content" onClick={e => e.stopPropagation()}>
+                    {renderExpandedDetails(lead)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Edit Modal */}
@@ -711,7 +831,90 @@ export default function WorkspacePage() {
           0%, 100% { box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3); }
           50% { box-shadow: 0 2px 14px rgba(239, 68, 68, 0.6); }
         }
+        .mobile-leads-list {
+          display: none;
+        }
         @media (max-width: 768px) {
+          .table-container {
+            display: none !important;
+          }
+          .mobile-leads-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-top: 10px;
+          }
+          .mobile-lead-card {
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+          }
+          .mobile-lead-card:hover {
+            border-color: var(--primary-light, #a78bfa);
+          }
+          .mobile-lead-card-active {
+            border-color: var(--primary);
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.12);
+            background: var(--surface-overlay, var(--surface));
+          }
+          .mobile-lead-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .mobile-lead-index {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+          .mobile-lead-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text);
+            margin: 0;
+          }
+          .mobile-lead-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            border-bottom: 1px dashed var(--surface-border);
+            padding-bottom: 8px;
+          }
+          .mobile-lead-label {
+            color: var(--text-muted);
+            font-weight: 500;
+          }
+          .mobile-lead-value {
+            color: var(--text);
+            font-weight: 600;
+          }
+          .mobile-lead-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+            border-top: 1px solid var(--surface-border);
+            padding-top: 12px;
+          }
+          .mobile-lead-expanded-content {
+            margin-top: 8px;
+            border-top: 1px solid var(--surface-border);
+            padding-top: 12px;
+          }
+          .mobile-lead-expanded-content > div {
+            padding: 12px !important;
+            border-radius: 10px;
+          }
           .workspace-action-btn {
             padding: 4px 8px;
             font-size: 0.68rem;
