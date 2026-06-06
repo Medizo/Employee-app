@@ -1003,6 +1003,25 @@ export default function DashboardLayout({ children }) {
                     </div>
                   )}
                 </div>
+
+                {/* DigiLocker Verified Status Badge */}
+                {digilockerStatus.verified && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 12px',
+                    height: 38,
+                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(5, 150, 105, 0.08))',
+                    border: '1.5px solid rgba(16, 185, 129, 0.35)',
+                    color: '#059669',
+                    boxSizing: 'border-box'
+                  }} title="DigiLocker Verified">
+                    <img src="/DigiLocker.png" alt="DigiLocker Verified" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>DigiLocker Verified</span>
+                  </div>
+                )}
               </div>
             </div>
           </header>
