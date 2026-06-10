@@ -55,7 +55,11 @@ export async function PUT(req) {
         return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
       }
       // Hash password before storing — never store plaintext
-      users[idx].password = await bcrypt.hash(sanitizeString(body.newPassword, 128), 10);
+      {
+        const newHash = await bcrypt.hash(sanitizeString(body.newPassword, 128), 10);
+        users[idx].password = newHash;
+        users[idx].passwordHash = newHash;
+      }
       break;
     case 'notifications':
       users[idx].notifications = body.notifications;
