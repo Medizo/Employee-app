@@ -8,6 +8,7 @@ export async function GET() {
   const users = await readData('users');
   const user = users.find(u => u.id === session.id);
   if (!user) return NextResponse.json({ user: null }, { status: 401 });
+  if (user.deactivated) return NextResponse.json({ user: null, error: 'Your account has been deactivated.' }, { status: 403 });
   const { password, ...safeUser } = user;
   
   try {

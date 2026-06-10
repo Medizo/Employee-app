@@ -41,6 +41,10 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
+    if (user.deactivated) {
+      return NextResponse.json({ error: 'Your account has been deactivated. Please contact support.' }, { status: 403 });
+    }
+
     // Support both plain-text passwords (seed data) and bcrypt-hashed passwords (admin-created)
     let isValid = false;
     if (user.password && user.password.startsWith('$2')) {
