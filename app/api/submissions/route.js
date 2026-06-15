@@ -50,7 +50,7 @@ export async function POST(req) {
     type: 'info',
     title: '📝 New Submission',
     message: `${session.name || 'An employee'} submitted a ${newSub.formType} report`,
-    link: '/dashboard/submissions',
+    link: `/dashboard/reports?dept=${session.department || 'Sales'}&reportId=${newSub.id}`,
   });
 
   return NextResponse.json({ submission: newSub });

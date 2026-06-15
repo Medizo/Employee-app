@@ -59,7 +59,7 @@ export async function POST(req) {
     type: 'info',
     title: '📎 Work Proof Uploaded',
     message: `${session.name || 'An employee'} uploaded proof: "${newProof.title}"`,
-    link: '/dashboard/submissions',
+    link: `/dashboard/reports?dept=${session.department || 'Sales'}`,
   });
 
   return NextResponse.json({ proof: newProof });
