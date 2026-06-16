@@ -185,9 +185,24 @@ export default function DashboardLayout({ children }) {
   const [digilockerStatus, setDigilockerStatus] = useState({ verified: false, loading: true });
   const [digilockerOpen, setDigilockerOpen] = useState(false);
 
+  const handleLogout = useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    localStorage.removeItem('user');
+    router.push('/login');
+  }, [router]);
+
   useEffect(() => {
+    const tabSession = sessionStorage.getItem('tab_session');
     fetch('/api/auth/me').then(r => r.json()).then(d => {
       if (!d.user) { router.push('/login'); return; }
+
+      if (tabSession !== 'active') {
+        handleLogout();
+        return;
+      }
+
       setUser(d.user);
       const userTheme = d.user.theme || 'system';
       const userColor = d.user.themeColor || 'beige';
@@ -202,7 +217,7 @@ export default function DashboardLayout({ children }) {
         if (unacked.length > 0) { setPendingAlerts(unacked); setActiveAlertIdx(0); }
       }).catch(() => {});
     }).catch(() => router.push('/login'));
-  }, [router]);
+  }, [router, handleLogout]);
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${textSize}px`;
@@ -253,13 +268,27 @@ export default function DashboardLayout({ children }) {
     };
   }, [user, fetchTimeData]);
 
-  const handleLogout = useCallback(async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch {}
-    localStorage.removeItem('user');
-    router.push('/login');
-  }, [router]);
+  // ═══ AUTO LOGOUT ON TAB CLOSE / REFRESH ═══
+  useEffect(() => {
+    if (!user) return;
+
+    const handleUnload = () => {
+      fetch('/api/auth/logout', {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('tab_session');
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, [user]);
 
   // ═══ IDLE TIMEOUT: auto logout after 30 minutes of inactivity ═══
   useEffect(() => {

@@ -114,6 +114,7 @@ export default function LoginPage() {
         setShake(true);
         setTimeout(() => setShake(false), 600);
       } else {
+        sessionStorage.setItem('tab_session', 'active');
         localStorage.setItem('user', JSON.stringify(data.user));
         router.push('/dashboard');
       }
