@@ -61,7 +61,7 @@ export default function AttendancePage() {
      Priority order:
      1. Check leaves collection (Pending = red border, Approved = On Leave)
      2. Check attendance records (Present / Half Day / Absent)
-     3. If Saturday or Sunday → Weekend (but check if they worked 8+hrs for comp-off)
+     3. If Saturday or Sunday → Weekend (but check if they worked 6+hrs for comp-off)
      4. Otherwise → null (plain day, no status)
      ────────────────────────────────────────────────────── */
   const getStatus = (day) => {
@@ -90,8 +90,8 @@ export default function AttendancePage() {
     // 2. Check attendance records
     const record = attendance.find(a => a.date === dateStr);
     if (record && record.status && record.status !== 'Weekend') {
-      // If they worked on a weekend with 8+ hrs, mark comp-off earned
-      if (isWeekend && record.totalHours >= 8) {
+      // If they worked on a weekend with 6+ hrs, mark comp-off earned
+      if (isWeekend && record.totalHours >= 6) {
         return { ...record, compOffEarned: true };
       }
       return record;
@@ -124,10 +124,11 @@ export default function AttendancePage() {
   });
 
   const aggregatedHours = filteredAttendance.reduce((acc, curr) => {
+    const hrs = curr.status === 'Present' ? 6 : curr.totalHours;
     if (!acc[curr.date]) {
-      acc[curr.date] = { ...curr };
+      acc[curr.date] = { ...curr, totalHours: hrs };
     } else {
-      acc[curr.date].totalHours += curr.totalHours;
+      acc[curr.date].totalHours += hrs;
     }
     return acc;
   }, {});
@@ -307,7 +308,7 @@ export default function AttendancePage() {
                               <p style={{ color: '#ec4899', fontSize: '0.75rem', fontWeight: 600 }}>🎂 Happy Birthday! Click to apply birthday leave</p>
                             )}
                             {tooltip.totalHours > 0 && (
-                              <p style={{ marginBottom: 4 }}>Present for <strong>{tooltip.totalHours}h</strong></p>
+                              <p style={{ marginBottom: 4 }}>Present for <strong>{tooltip.status === 'Present' ? 6 : tooltip.totalHours}h</strong></p>
                             )}
                             {tooltip.loginTime && (
                               <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>🕐 {tooltip.loginTime} – {tooltip.logoutTime}</p>
@@ -359,7 +360,7 @@ export default function AttendancePage() {
           <div className="card" style={{ padding: 16, marginBottom: 16, borderLeft: '4px solid #8b5cf6' }}>
             <h4 style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 8 }}>⭐ Comp-Off Balance</h4>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Earned (8h+ weekend work)</span>
+              <span style={{ color: 'var(--text-muted)' }}>Earned (6h+ weekend work)</span>
               <strong style={{ color: '#8b5cf6' }}>{compOffsEarned}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginTop: 4 }}>

@@ -30,6 +30,55 @@ export default function TasksPage() {
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [selectedCampaign, setSelectedCampaign] = useState(null);
 
+  const [timeSpentMs, setTimeSpentMs] = useState(0);
+
+  // Helper to calculate total active/accumulated time spent on a task
+  const calculateTimeSpent = (statusLogs) => {
+    if (!statusLogs || statusLogs.length === 0) return 0;
+    let totalMs = 0;
+    let activeStart = null;
+    for (let i = 0; i < statusLogs.length; i++) {
+      const log = statusLogs[i];
+      if (log.status === 'In Progress') {
+        activeStart = new Date(log.timestamp);
+      } else if (activeStart && ['Completed', 'Pending', 'Cancelled'].includes(log.status)) {
+        totalMs += new Date(log.timestamp) - activeStart;
+        activeStart = null;
+      }
+    }
+    if (activeStart) {
+      totalMs += new Date() - activeStart;
+    }
+    return totalMs;
+  };
+
+  const formatTimeSpent = (ms) => {
+    const totalSecs = Math.floor(ms / 1000);
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    return `${h}h ${m}m ${s}s`;
+  };
+
+  // Run ticking clock when task detail is In Progress
+  useEffect(() => {
+    if (!detail) {
+      setTimeSpentMs(0);
+      return;
+    }
+
+    const updateTimer = () => {
+      const ms = calculateTimeSpent(detail.statusLogs);
+      setTimeSpentMs(ms);
+    };
+
+    updateTimer();
+    if (detail.status === 'In Progress') {
+      const timerId = setInterval(updateTimer, 1000);
+      return () => clearInterval(timerId);
+    }
+  }, [detail]);
+
   useEffect(() => { 
     fetchTasks();
     if (user?.role === 'Campus Ambassador') {
@@ -78,7 +127,7 @@ export default function TasksPage() {
     .filter(t => (!filter || getDisplayStatus(t) === filter) && (!prioFilter || t.priority === prioFilter))
     .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
-  const updateStatus = async (id, status, proof = null, newComment = null) => {
+  const updateStatus = async (id, status, proof = null, newComment = null, shouldOpen = false) => {
     const payload = { id, status };
     if (proof) payload.completionProof = proof;
     if (newComment?.trim()) payload.newComment = newComment;
@@ -90,10 +139,12 @@ export default function TasksPage() {
       });
       const data = await res.json();
       fetchTasks();
-      if (detail?.id === id && data.task) {
-        setDetail(data.task);
-        if (status === 'Completed' && data.task.hasCompletionProof) {
-          loadCompletionProof(id);
+      if (data.task) {
+        if (detail?.id === id || shouldOpen) {
+          setDetail(data.task);
+          if (status === 'Completed' && data.task.hasCompletionProof) {
+            loadCompletionProof(id);
+          }
         }
       }
     } catch (err) {
@@ -313,7 +364,7 @@ export default function TasksPage() {
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                     {t.status === 'Pending' && (
-                      <button className="btn btn-primary btn-sm" onClick={() => updateStatus(t.id, 'In Progress')} style={{ gap: 4 }}>
+                      <button className="btn btn-primary btn-sm" onClick={() => updateStatus(t.id, 'In Progress', null, null, true)} style={{ gap: 4 }}>
                         <Play size={13} /> Start
                       </button>
                     )}
@@ -506,6 +557,51 @@ export default function TasksPage() {
               </div>
             </div>
 
+            {/* Task Timer / Time Limit display */}
+            <div style={{
+              background: 'var(--bg-secondary)', padding: 14, borderRadius: 12, border: '1px solid var(--surface-border)', marginBottom: 16
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Clock size={16} color="var(--primary)" />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Time Spent:</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text)' }}>
+                    {formatTimeSpent(timeSpentMs)}
+                  </span>
+                  {detail.status === 'In Progress' && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(52, 211, 153, 0.12)', color: 'var(--success)', padding: '2px 8px', borderRadius: 8, fontSize: '0.7rem', fontWeight: 700 }}>
+                      <span className="live-pulse-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }} />
+                      Running
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {detail.timeLimitHours && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 600, marginBottom: 6 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Time Limit: {detail.timeLimitHours} hrs</span>
+                    <span style={{ color: timeSpentMs > (detail.timeLimitHours * 3600 * 1000) ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                      {(timeSpentMs / (3600 * 1000)).toFixed(2)} / {detail.timeLimitHours} hrs
+                    </span>
+                  </div>
+                  <div style={{ width: '100%', height: 6, background: 'var(--surface-border)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ 
+                      width: `${Math.min(100, (timeSpentMs / (detail.timeLimitHours * 3600 * 1000)) * 100)}%`, 
+                      height: '100%', 
+                      background: timeSpentMs > (detail.timeLimitHours * 3600 * 1000) ? 'var(--danger)' : 'var(--primary)',
+                      transition: 'width 0.3s ease'
+                    }} />
+                  </div>
+                  {timeSpentMs > (detail.timeLimitHours * 3600 * 1000) && (
+                    <p style={{ color: 'var(--danger)', fontSize: '0.72rem', fontWeight: 700, margin: '6px 0 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      ⚠️ Time Limit Exceeded by {formatTimeSpent(timeSpentMs - (detail.timeLimitHours * 3600 * 1000))}!
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Admin-attached file */}
             {detail.hasAttachment && (
               <div style={{ marginBottom: 20, padding: '12px 14px', background: 'rgba(99,102,241,0.06)', borderRadius: 10, border: '1px solid rgba(99,102,241,0.15)' }}>
@@ -637,14 +733,7 @@ export default function TasksPage() {
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
                       You are currently working on this task. Once you have completed all the deliverables, click "Submit Work" to upload your proof.
                     </p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 4 }}>
-                      <button 
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => updateStatus(detail.id, 'Pending')}
-                        style={{ gap: 4 }}
-                      >
-                        <Clock size={13} /> Pause Task
-                      </button>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
                       <button 
                         className="btn btn-primary btn-sm" 
                         onClick={() => setActiveStep(3)}
@@ -832,17 +921,91 @@ export default function TasksPage() {
               </div>
             </div>
 
+            {/* Status Logs Timeline */}
+            {detail.statusLogs && detail.statusLogs.length > 0 && (
+              <div style={{ borderTop: '1px solid var(--surface-border)', paddingTop: 16, marginBottom: 20 }}>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Activity & Status Log</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingLeft: 8 }}>
+                  {detail.statusLogs.map((log, lIdx) => {
+                    const logDate = new Date(log.timestamp).toLocaleString('en-IN', {
+                      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+                    });
+                    const isCompleted = log.status === 'Completed';
+                    const isInProgress = log.status === 'In Progress';
+                    const isPending = log.status === 'Pending';
+                    const badgeColor = isCompleted ? 'var(--success)' : isInProgress ? 'var(--primary)' : 'var(--text-muted)';
+                    
+                    return (
+                      <div key={lIdx} style={{ display: 'flex', gap: 12, position: 'relative' }}>
+                        {/* Timeline Connector Line */}
+                        {lIdx < detail.statusLogs.length - 1 && (
+                          <div style={{ position: 'absolute', left: 7, top: 18, bottom: -18, width: 2, background: 'var(--surface-border)' }} />
+                        )}
+                        {/* Timeline Dot */}
+                        <div style={{
+                          width: 16, height: 16, borderRadius: '50%',
+                          background: badgeColor, border: '3px solid var(--surface)',
+                          boxShadow: '0 0 0 1px var(--surface-border)',
+                          flexShrink: 0, marginTop: 3
+                        }} />
+                        {/* Log Details */}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text)' }}>
+                              {log.status === 'In Progress' ? '🚀 Task Started' : log.status === 'Completed' ? '✅ Task Completed & Submitted' : log.status === 'Pending' ? '📋 Task Assigned / Set to Pending' : `Task status: ${log.status}`}
+                            </span>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{logDate}</span>
+                          </div>
+                          <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                            Action by: <strong>{log.userName || (log.by === 'admin' ? 'Admin' : 'Employee')}</strong>
+                          </p>
+                          {log.comment && (
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'var(--bg-secondary)', padding: '6px 10px', borderRadius: 6, margin: '6px 0 0 0', display: 'inline-block', border: '1px solid var(--surface-border)' }}>
+                              {log.comment}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Comments */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <MessageSquare size={16} color="var(--primary)" />
               <h4 style={{ fontWeight: 600, fontSize: '0.95rem' }}>Comments</h4>
             </div>
-            {detail.comments?.map((c, ci) => (
-              <div key={`${c.id}-${ci}`} style={{ padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: 10, marginBottom: 8, fontSize: '0.85rem' }}>
-                <p>{c.text}</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>{new Date(c.timestamp).toLocaleString()}</p>
-              </div>
-            ))}
+            {detail.comments?.map((c, ci) => {
+              const isAdmin = c.by === 'admin';
+              return (
+                <div key={`${c.id}-${ci}`} style={{ 
+                  padding: '12px 14px', 
+                  borderRadius: 12, 
+                  marginBottom: 8, 
+                  fontSize: '0.85rem',
+                  border: '1px solid var(--surface-border)',
+                  ...(isAdmin ? {
+                    background: 'rgba(239, 68, 68, 0.04)',
+                    borderColor: 'rgba(239, 68, 68, 0.12)',
+                  } : {
+                    background: 'rgba(99, 102, 241, 0.04)',
+                    borderColor: 'rgba(99, 102, 241, 0.12)',
+                  })
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontWeight: 700, color: isAdmin ? '#b91c1c' : 'var(--primary)' }}>
+                      {isAdmin ? '💬 Admin' : '👤 Employee'}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      {new Date(c.timestamp).toLocaleString()}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, color: 'var(--text)', lineHeight: 1.4 }}>{c.text}</p>
+                </div>
+              );
+            })}
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               <input value={comment} onChange={e => setComment(e.target.value)} placeholder="Add a comment..." style={{ flex: 1 }} onKeyDown={e => e.key === 'Enter' && addComment()} />
               <button className="btn btn-primary btn-sm" onClick={addComment}><Send size={14} /></button>
@@ -943,6 +1106,16 @@ export default function TasksPage() {
           </div>
         </div>
       )}
+      <style>{`
+        .live-pulse-dot {
+          animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+          0% { opacity: 0.3; transform: scale(0.9); }
+          50% { opacity: 1; transform: scale(1.1); }
+          100% { opacity: 0.3; transform: scale(0.9); }
+        }
+      `}</style>
     </div>
   );
 }

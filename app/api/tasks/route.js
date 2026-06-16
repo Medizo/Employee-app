@@ -62,11 +62,22 @@ export async function PUT(req) {
   if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const updateFields = {};
+  const updateDoc = {};
+
   if (body.status && isOneOf(body.status, ['Pending', 'In Progress', 'Completed'])) {
     updateFields.status = body.status;
+    if (body.status !== target.status) {
+      const logEntry = {
+        status: body.status,
+        timestamp: new Date().toISOString(),
+        by: 'employee',
+        userName: session.name || session.email || 'Employee',
+        comment: body.newComment || (body.status === 'In Progress' ? 'Task started' : body.status === 'Completed' ? 'Task completed & submitted' : 'Status updated')
+      };
+      updateDoc.$push = { statusLogs: logEntry };
+    }
   }
   
-  const updateDoc = {};
   if (Object.keys(updateFields).length > 0) {
     updateDoc.$set = updateFields;
   }
@@ -78,7 +89,8 @@ export async function PUT(req) {
       timestamp: new Date().toISOString(),
       by: session.id,
     };
-    updateDoc.$push = { comments: newComment };
+    if (!updateDoc.$push) updateDoc.$push = {};
+    updateDoc.$push.comments = newComment;
   }
 
   // Store completion proof in MongoDB instead of JSON

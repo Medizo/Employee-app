@@ -261,10 +261,10 @@ export default function DashboardLayout({ children }) {
     router.push('/login');
   }, [router]);
 
-  // ═══ IDLE TIMEOUT: auto logout after 4 hours of inactivity ═══
+  // ═══ IDLE TIMEOUT: auto logout after 30 minutes of inactivity ═══
   useEffect(() => {
     if (!user) return;
-    const IDLE_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours
+    const IDLE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
     let idleTimer = null;
 
     const resetTimer = () => {

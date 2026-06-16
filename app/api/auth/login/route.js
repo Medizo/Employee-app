@@ -73,7 +73,9 @@ export async function POST(request) {
       const db = await getDb();
       const col = db.collection('timesessions');
       const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
+      const IST_OFFSET = 5.5 * 60 * 60 * 1000;
+      const istNow = new Date(now.getTime() + IST_OFFSET);
+      const todayStr = `${istNow.getUTCFullYear()}-${String(istNow.getUTCMonth() + 1).padStart(2, '0')}-${String(istNow.getUTCDate()).padStart(2, '0')}`;
 
       // Check if already clocked in today
       const existing = await col.findOne({

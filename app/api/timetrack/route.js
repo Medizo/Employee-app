@@ -3,13 +3,22 @@ import { getSession } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 
 // ── Helpers ──────────────────────────────────────────────
-const WORK_START_HOUR = 8;  // 8:00 AM
-const WORK_END_HOUR = 20;   // 8:00 PM
-const HEARTBEAT_STALE_MS = 3 * 60 * 1000; // 3 min — if heartbeat older than this, session is stale
+const WORK_START_HOUR = 8;  // 8:00 AM IST
+const WORK_END_HOUR = 20;   // 8:00 PM IST
+const HEARTBEAT_STALE_MS = 30 * 60 * 1000; // 30 min — if heartbeat older than this, session is stale
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // UTC+5:30 in milliseconds
+
+/**
+ * Convert a UTC Date to IST by adding the offset.
+ * Returns a new Date shifted so that getUTC* methods return IST values.
+ */
+function toIST(date) {
+  return new Date(date.getTime() + IST_OFFSET_MS);
+}
 
 /**
  * Calculate working seconds between two timestamps, 
- * only counting time within the 8 AM – 8 PM window.
+ * only counting time within the 8 AM – 8 PM IST window.
  */
 function calcWorkingSeconds(loginISO, logoutISO) {
   const start = new Date(loginISO);
@@ -18,31 +27,42 @@ function calcWorkingSeconds(loginISO, logoutISO) {
   if (end <= start) return 0;
 
   let totalSecs = 0;
-  const cursor = new Date(start);
 
-  // Process day by day
-  while (cursor < end) {
-    const dayStart = new Date(cursor);
-    dayStart.setHours(WORK_START_HOUR, 0, 0, 0);
+  // Convert to IST for day boundary and work-window calculations
+  const istStart = toIST(start);
+  const istEnd = toIST(end);
 
-    const dayEnd = new Date(cursor);
-    dayEnd.setHours(WORK_END_HOUR, 0, 0, 0);
+  // Get the starting day in IST
+  const cursorIST = new Date(Date.UTC(
+    istStart.getUTCFullYear(), istStart.getUTCMonth(), istStart.getUTCDate()
+  ));
 
-    // Effective start for this day
-    const effectiveStart = cursor < dayStart ? dayStart : new Date(cursor);
-    // Effective end for this day
-    const nextMidnight = new Date(cursor);
-    nextMidnight.setDate(nextMidnight.getDate() + 1);
-    nextMidnight.setHours(0, 0, 0, 0);
-    const effectiveEnd = end < dayEnd ? new Date(end) : dayEnd;
+  // Process day by day (in IST)
+  while (cursorIST.getTime() <= istEnd.getTime()) {
+    // Work window boundaries in IST (as UTC timestamps shifted by IST offset)
+    const dayWorkStartIST = new Date(Date.UTC(
+      cursorIST.getUTCFullYear(), cursorIST.getUTCMonth(), cursorIST.getUTCDate(),
+      WORK_START_HOUR, 0, 0, 0
+    ));
+    const dayWorkEndIST = new Date(Date.UTC(
+      cursorIST.getUTCFullYear(), cursorIST.getUTCMonth(), cursorIST.getUTCDate(),
+      WORK_END_HOUR, 0, 0, 0
+    ));
 
-    if (effectiveStart < effectiveEnd && effectiveStart < dayEnd && effectiveEnd > dayStart) {
+    // Convert work window back to real UTC for comparison with actual timestamps
+    const workStartUTC = new Date(dayWorkStartIST.getTime() - IST_OFFSET_MS);
+    const workEndUTC = new Date(dayWorkEndIST.getTime() - IST_OFFSET_MS);
+
+    // Clamp to the actual login/logout range
+    const effectiveStart = start > workStartUTC ? start : workStartUTC;
+    const effectiveEnd = end < workEndUTC ? end : workEndUTC;
+
+    if (effectiveStart < effectiveEnd) {
       totalSecs += Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / 1000);
     }
 
-    // Move to start of next day
-    cursor.setDate(cursor.getDate() + 1);
-    cursor.setHours(0, 0, 0, 0);
+    // Move to next day in IST
+    cursorIST.setUTCDate(cursorIST.getUTCDate() + 1);
   }
 
   return Math.max(0, totalSecs);
@@ -62,7 +82,7 @@ export async function GET(req) {
   const now = new Date();
   const todayStr = localDate || now.toISOString().split('T')[0];
 
-  // ── Auto-close stale sessions (heartbeat > 3 min ago) ──
+  // ── Auto-close stale sessions (heartbeat > 30 min ago) ──
   const staleSessions = await col.find({
     userId: session.id,
     logoutTime: null,
@@ -130,7 +150,8 @@ export async function POST(req) {
   const col = db.collection('timesessions');
   const attCol = db.collection('attendance');
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const istNow = toIST(now);
+  const todayStr = `${istNow.getUTCFullYear()}-${String(istNow.getUTCMonth() + 1).padStart(2, '0')}-${String(istNow.getUTCDate()).padStart(2, '0')}`;
 
   if (action === 'clockin') {
     // Check if there's already an active session
@@ -206,10 +227,10 @@ async function syncAttendance(userId, dateStr, timeCol, attCol) {
   const earliestLogin = new Date(Math.min(...loginTimes));
   const latestLogout = new Date(Math.max(...logoutTimes));
 
-  const loginTimeStr = earliestLogin.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-  const logoutTimeStr = latestLogout.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const loginTimeStr = earliestLogin.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+  const logoutTimeStr = latestLogout.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
 
-  const status = totalHours >= 6 ? 'Present' : totalHours >= 3 ? 'Half Day' : 'Absent';
+  const status = totalHours >= 3 ? 'Present' : totalHours > 0 ? 'Half Day' : 'Absent';
 
   // Upsert into attendance collection
   const existing = await attCol.findOne({ userId, date: dateStr });

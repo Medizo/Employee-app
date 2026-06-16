@@ -12,10 +12,10 @@ export async function GET() {
   const db = await getDb();
   const leaves = await db.collection('leaves').find({ userId: session.id }).toArray();
   
-  // Calculate comp-off balance: earned from weekend work (8+ hrs) minus used comp-offs
+  // Calculate comp-off balance: earned from weekend work (6+ hrs) minus used comp-offs
   const attendance = await db.collection('attendance').find({ userId: session.id }).toArray();
   const weekendWork = attendance.filter(a => {
-    if (!a.date || !a.totalHours || a.totalHours < 8) return false;
+    if (!a.date || !a.totalHours || a.totalHours < 6) return false;
     const d = new Date(a.date + 'T00:00:00');
     const dow = d.getDay();
     return dow === 0 || dow === 6; // Sunday or Saturday
@@ -69,7 +69,7 @@ export async function POST(req) {
     const attendance = await db.collection('attendance').find({ userId: session.id }).toArray();
     const leaves = await db.collection('leaves').find({ userId: session.id }).toArray();
     const weekendWork = attendance.filter(a => {
-      if (!a.date || !a.totalHours || a.totalHours < 8) return false;
+      if (!a.date || !a.totalHours || a.totalHours < 6) return false;
       const d = new Date(a.date + 'T00:00:00');
       const dow = d.getDay();
       return dow === 0 || dow === 6;

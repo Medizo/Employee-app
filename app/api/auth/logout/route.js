@@ -4,6 +4,11 @@ import { getDb } from '@/lib/db';
 
 const WORK_START_HOUR = 8;
 const WORK_END_HOUR = 20;
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // UTC+5:30
+
+function toIST(date) {
+  return new Date(date.getTime() + IST_OFFSET_MS);
+}
 
 function calcWorkingSeconds(loginISO, logoutISO) {
   const start = new Date(loginISO);
@@ -11,23 +16,34 @@ function calcWorkingSeconds(loginISO, logoutISO) {
   if (end <= start) return 0;
 
   let totalSecs = 0;
-  const cursor = new Date(start);
+  const istStart = toIST(start);
+  const istEnd = toIST(end);
 
-  while (cursor < end) {
-    const dayStart = new Date(cursor);
-    dayStart.setHours(WORK_START_HOUR, 0, 0, 0);
-    const dayEnd = new Date(cursor);
-    dayEnd.setHours(WORK_END_HOUR, 0, 0, 0);
+  const cursorIST = new Date(Date.UTC(
+    istStart.getUTCFullYear(), istStart.getUTCMonth(), istStart.getUTCDate()
+  ));
 
-    const effectiveStart = cursor < dayStart ? dayStart : new Date(cursor);
-    const effectiveEnd = end < dayEnd ? new Date(end) : dayEnd;
+  while (cursorIST.getTime() <= istEnd.getTime()) {
+    const dayWorkStartIST = new Date(Date.UTC(
+      cursorIST.getUTCFullYear(), cursorIST.getUTCMonth(), cursorIST.getUTCDate(),
+      WORK_START_HOUR, 0, 0, 0
+    ));
+    const dayWorkEndIST = new Date(Date.UTC(
+      cursorIST.getUTCFullYear(), cursorIST.getUTCMonth(), cursorIST.getUTCDate(),
+      WORK_END_HOUR, 0, 0, 0
+    ));
 
-    if (effectiveStart < effectiveEnd && effectiveStart < dayEnd && effectiveEnd > dayStart) {
+    const workStartUTC = new Date(dayWorkStartIST.getTime() - IST_OFFSET_MS);
+    const workEndUTC = new Date(dayWorkEndIST.getTime() - IST_OFFSET_MS);
+
+    const effectiveStart = start > workStartUTC ? start : workStartUTC;
+    const effectiveEnd = end < workEndUTC ? end : workEndUTC;
+
+    if (effectiveStart < effectiveEnd) {
       totalSecs += Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / 1000);
     }
 
-    cursor.setDate(cursor.getDate() + 1);
-    cursor.setHours(0, 0, 0, 0);
+    cursorIST.setUTCDate(cursorIST.getUTCDate() + 1);
   }
 
   return Math.max(0, totalSecs);
@@ -69,10 +85,10 @@ export async function POST() {
         const earliestLogin = new Date(Math.min(...loginTimes));
         const latestLogout = new Date(Math.max(...logoutTimes));
 
-        const loginTimeStr = earliestLogin.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-        const logoutTimeStr = latestLogout.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const loginTimeStr = earliestLogin.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+        const logoutTimeStr = latestLogout.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
 
-        const status = totalHours >= 6 ? 'Present' : totalHours >= 3 ? 'Half Day' : 'Absent';
+        const status = totalHours >= 3 ? 'Present' : totalHours > 0 ? 'Half Day' : 'Absent';
 
         const existing = await attCol.findOne({ userId: session.id, date: dateStr });
         if (existing) {
