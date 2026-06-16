@@ -4,7 +4,7 @@ import { useUser } from '../context';
 import { 
   ListTodo, Clock, RotateCcw, CheckCircle2, AlertTriangle, Play, Check, 
   MessageSquare, Send, X, Calendar, Paperclip, Download, ChevronLeft, ChevronRight,
-  TrendingUp, Award, Briefcase, Eye
+  TrendingUp, Award, Briefcase, Eye, Upload, ArrowLeft, ArrowRight
 } from 'lucide-react';
 
 const priorityOrder = { Urgent: 0, High: 1, Medium: 2, Low: 3 };
@@ -20,6 +20,9 @@ export default function TasksPage() {
   const [comment, setComment] = useState('');
   const [proofFile, setProofFile] = useState(null);
   const [proofPreview, setProofPreview] = useState(null); // { src, filename, contentType }
+  const [proofFileName, setProofFileName] = useState('');
+  const [submissionComment, setSubmissionComment] = useState('');
+  const [activeStep, setActiveStep] = useState(1);
 
   // Campaigns & Calendar States for Campus Ambassador
   const [taskTab, setTaskTab] = useState('list'); // list | calendar
@@ -33,6 +36,26 @@ export default function TasksPage() {
       fetchCampaigns();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (detail) {
+      if (detail.status === 'Pending') {
+        setActiveStep(1);
+      } else if (detail.status === 'In Progress') {
+        setActiveStep(2);
+      } else if (detail.status === 'Completed') {
+        setActiveStep(4);
+        if (detail.hasCompletionProof && !proofPreview) {
+          loadCompletionProof(detail.id);
+        }
+      }
+    } else {
+      setProofFile(null);
+      setProofFileName('');
+      setProofPreview(null);
+      setSubmissionComment('');
+    }
+  }, [detail]);
 
   const fetchTasks = () => fetch('/api/tasks').then(r => r.json()).then(d => setTasks(d.tasks || []));
 
@@ -55,18 +78,47 @@ export default function TasksPage() {
     .filter(t => (!filter || getDisplayStatus(t) === filter) && (!prioFilter || t.priority === prioFilter))
     .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
-  const updateStatus = async (id, status, proof = null) => {
+  const updateStatus = async (id, status, proof = null, newComment = null) => {
     const payload = { id, status };
     if (proof) payload.completionProof = proof;
-    await fetch('/api/tasks', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    fetchTasks();
-    if (detail?.id === id) setDetail(d => ({ ...d, status, completionProof: proof || d.completionProof }));
-    if (status === 'Completed') setProofFile(null);
+    if (newComment?.trim()) payload.newComment = newComment;
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      fetchTasks();
+      if (detail?.id === id && data.task) {
+        setDetail(data.task);
+        if (status === 'Completed' && data.task.hasCompletionProof) {
+          loadCompletionProof(id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to update task status:', err);
+    }
+    if (status === 'Completed') {
+      setProofFile(null);
+      setProofFileName('');
+      setSubmissionComment('');
+    }
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    
+    // 3MB size limit validation
+    const maxSizeBytes = 3 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      alert("File size exceeds the 3MB limit. Please upload a smaller file.");
+      e.target.value = '';
+      return;
+    }
+
+    setProofFileName(file.name);
     const reader = new FileReader();
     reader.onload = (event) => setProofFile(event.target.result);
     reader.readAsDataURL(file);
@@ -476,88 +528,307 @@ export default function TasksPage() {
               </div>
             )}
 
-            {detail.status === 'In Progress' && (
-               <div style={{ marginBottom: 20, background: 'var(--bg-secondary)', padding: '12px 14px', borderRadius: 10 }}>
-                 <p style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Paperclip size={14} /> Attach work (Optional)
-                 </p>
-                 <input type="file" accept=".pdf,image/*" onChange={handleFileChange} style={{ fontSize: '0.8rem', width: '100%' }} />
-               </div>
-            )}
+            {/* Unified Slide-based Task Status Tracker */}
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 16, 
+              marginBottom: 20, 
+              background: 'var(--bg-secondary)', 
+              padding: 18, 
+              borderRadius: 14, 
+              border: '1px solid var(--surface-border)',
+              boxShadow: 'var(--shadow-sm)'
+            }}>
+              {/* Stepper Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, position: 'relative', padding: '0 8px' }}>
+                <div style={{ position: 'absolute', top: 15, left: '8%', right: '8%', height: 2, background: 'var(--surface-border)', zIndex: 0 }} />
+                <div style={{
+                  position: 'absolute', top: 15, left: '8%',
+                  width: activeStep === 1 ? '0%' : activeStep === 2 ? '33%' : activeStep === 3 ? '66%' : '84%',
+                  height: 2, background: 'var(--primary)', zIndex: 0,
+                  transition: 'all 0.3s ease'
+                }} />
 
-            {/* Completion Proof from MongoDB */}
-            {(detail.hasCompletionProof || detail.completionProof) && (
-               <div style={{ marginBottom: 20, padding: '12px 14px', background: 'var(--bg-secondary)', borderRadius: 10 }}>
-                 <p style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Paperclip size={14} /> Attached Work
-                 </p>
-                 {/* Old inline proof (backward compat) */}
-                 {detail.completionProof && detail.completionProof.startsWith('data:image') ? (
-                    <img src={detail.completionProof} alt="Proof" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }} />
-                 ) : detail.completionProof && detail.completionProof.startsWith('data:') ? (
-                    <a href={detail.completionProof} download="Attachment" style={{ fontSize: '0.85rem', color: 'var(--primary)', textDecoration: 'underline' }}>Download Attachment</a>
-                 ) : (
-                    /* New MongoDB-backed proof */
-                    <>
-                      {proofPreview ? (
-                        proofPreview.contentType?.startsWith('image/') ? (
-                          <img src={proofPreview.src} alt="Proof" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, marginBottom: 8 }} />
-                        ) : (
-                          <a href={proofPreview.src} download={proofPreview.filename} style={{ fontSize: '0.85rem', color: 'var(--primary)', textDecoration: 'underline' }}>
-                            <Download size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
-                            {proofPreview.filename}
-                          </a>
-                        )
-                      ) : (
-                        <button
-                          onClick={() => loadCompletionProof(detail.id)}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                            background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)',
-                            borderRadius: 8, padding: '8px 14px', cursor: 'pointer',
-                            color: '#10b981', fontSize: '0.82rem', fontWeight: 600,
-                          }}
-                        >
-                          <Download size={14} /> View / Download Proof
-                        </button>
-                      )}
-                    </>
-                 )}
-               </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20, background: 'var(--bg-secondary)', padding: 14, borderRadius: 12, border: '1px solid var(--surface-border)' }}>
-              <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Task Status Tracker</p>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
                 {[
-                  { key: 'Pending', label: 'Pending', activeBg: '#f59e0b', color: '#fff', border: '1px solid #f59e0b' },
-                  { key: 'In Progress', label: 'In Progress', activeBg: '#6366f1', color: '#fff', border: '1px solid #6366f1' },
-                  { key: 'Completed', label: 'Mark Done', activeBg: '#34d399', color: '#fff', border: '1px solid #34d399' }
-                ].map(item => {
-                  const isSelected = detail.status === item.key;
+                  { step: 1, label: 'Pending', icon: Clock },
+                  { step: 2, label: 'In Progress', icon: Play },
+                  { step: 3, label: 'Submission', icon: Paperclip },
+                  { step: 4, label: 'Completed', icon: Check }
+                ].map((item, idx) => {
+                  const StepIcon = item.icon;
+                  const isCompleted = activeStep > item.step || (detail.status === 'Completed' && item.step === 4);
+                  const isActive = activeStep === item.step;
+                  const isClickable = item.step <= (detail.status === 'Completed' ? 4 : detail.status === 'In Progress' ? 3 : 1);
                   return (
-                    <button
-                      key={item.key}
-                      onClick={() => updateStatus(detail.id, item.key, item.key === 'Completed' ? proofFile : null)}
-                      className={`btn btn-sm`}
-                      style={{
-                        padding: '6px 14px',
-                        borderRadius: 8,
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s',
-                        background: isSelected ? item.activeBg : 'transparent',
-                        color: isSelected ? item.color : 'var(--text-muted)',
-                        border: isSelected ? item.border : '1px solid var(--surface-border)',
-                        boxShadow: isSelected ? 'var(--shadow-sm)' : 'none',
+                    <div 
+                      key={idx} 
+                      onClick={() => isClickable && setActiveStep(item.step)}
+                      style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        zIndex: 1, 
+                        flex: 1, 
+                        position: 'relative',
+                        cursor: isClickable ? 'pointer' : 'not-allowed'
                       }}
                     >
-                      {item.key === 'Completed' && isSelected && <Check size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />}
-                      {item.label}
-                    </button>
+                      <div style={{
+                        width: 30, height: 30, borderRadius: '50%',
+                        background: isCompleted ? 'var(--success)' : isActive ? 'var(--primary)' : 'var(--surface)',
+                        color: isCompleted || isActive ? '#fff' : 'var(--text-muted)',
+                        border: isActive ? '3px solid var(--primary-glow)' : '1px solid var(--surface-border)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 0.2s ease',
+                        boxShadow: isActive ? 'var(--shadow-glow)' : 'none'
+                      }}>
+                        {isCompleted ? <Check size={13} /> : <StepIcon size={13} />}
+                      </div>
+                      <span style={{
+                        fontSize: '0.68rem', fontWeight: isActive || isCompleted ? 700 : 500,
+                        color: isActive ? 'var(--primary)' : isCompleted ? 'var(--success)' : 'var(--text-muted)',
+                        marginTop: 6, whiteSpace: 'nowrap'
+                      }}>
+                        {item.label}
+                      </span>
+                    </div>
                   );
                 })}
+              </div>
+
+              {/* Slide Content Box */}
+              <div style={{ background: 'var(--surface)', padding: 16, borderRadius: 10, border: '1px solid var(--surface-border)' }}>
+                {activeStep === 1 && (
+                  <div className="animate-fade" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)', margin: 0 }}>Task is Pending</h4>
+                      <span className="badge badge-pending">Pending</span>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                      This task has not been started yet. Once you are ready to begin, click "Start Task" to mark it as In Progress.
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+                      {detail.status !== 'Pending' && (
+                        <button 
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => updateStatus(detail.id, 'Pending')}
+                        >
+                          Reset to Pending
+                        </button>
+                      )}
+                      <button 
+                        className="btn btn-primary btn-sm" 
+                        onClick={() => updateStatus(detail.id, 'In Progress')}
+                        style={{ gap: 4 }}
+                      >
+                        <Play size={13} /> Start Task
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {activeStep === 2 && (
+                  <div className="animate-fade" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)', margin: 0 }}>Task in Progress</h4>
+                      <span className="badge badge-info">In Progress</span>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                      You are currently working on this task. Once you have completed all the deliverables, click "Submit Work" to upload your proof.
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 4 }}>
+                      <button 
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => updateStatus(detail.id, 'Pending')}
+                        style={{ gap: 4 }}
+                      >
+                        <Clock size={13} /> Pause Task
+                      </button>
+                      <button 
+                        className="btn btn-primary btn-sm" 
+                        onClick={() => setActiveStep(3)}
+                        style={{ gap: 4 }}
+                      >
+                        Submit Work <ArrowRight size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {activeStep === 3 && (
+                  <div className="animate-fade" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)', margin: 0 }}>Submit Task Deliverables</h4>
+                      <span className="badge badge-submitted">Submit Mode</span>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      Please upload your proof of completion (PDF, Images, Excel, PowerPoint) and add any final notes/comments for review.
+                    </p>
+
+                    {/* Styled Dropzone */}
+                    <div style={{
+                      border: '2px dashed var(--primary-light)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '16px',
+                      textAlign: 'center',
+                      background: 'rgba(194, 155, 118, 0.04)',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(194, 155, 118, 0.08)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(194, 155, 118, 0.04)'}
+                      onClick={() => document.getElementById('proof-file-input').click()}
+                    >
+                      <input 
+                        id="proof-file-input" 
+                        type="file" 
+                        accept=".pdf,image/*,.xls,.xlsx,.ppt,.pptx" 
+                        onChange={handleFileChange} 
+                        style={{ display: 'none' }} 
+                      />
+                      {proofFile ? (
+                        <div onClick={e => e.stopPropagation()} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                          {proofFile.startsWith('data:image/') ? (
+                            <img src={proofFile} alt="Preview" style={{ maxHeight: 90, maxWidth: '100%', borderRadius: 6, border: '1px solid var(--surface-border)' }} />
+                          ) : (
+                            <Paperclip size={24} color="var(--primary)" />
+                          )}
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
+                            {proofFileName || 'Selected Document'}
+                          </span>
+                          <button 
+                            className="btn btn-ghost btn-sm" 
+                            onClick={() => { setProofFile(null); setProofFileName(''); }}
+                            style={{ color: 'var(--danger)', fontSize: '0.7rem', padding: '2px 6px', minHeight: 'auto' }}
+                          >
+                            Remove file
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload size={20} color="var(--primary)" />
+                          <div>
+                            <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)', margin: 0 }}>Click to upload files</p>
+                            <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', margin: 0 }}>PDF, Images, Excel, PowerPoint up to 3MB</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Submission Comment Notes */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Submission Notes (Optional)
+                      </label>
+                      <textarea
+                        value={submissionComment}
+                        onChange={e => setSubmissionComment(e.target.value)}
+                        placeholder="Provide details about your completed work..."
+                        style={{ minHeight: 50, fontSize: '0.8rem', padding: '8px 10px', borderRadius: 8 }}
+                      />
+                    </div>
+
+                    {/* Slide Navigation Buttons */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 4 }}>
+                      <button 
+                        className="btn btn-ghost btn-sm" 
+                        onClick={() => setActiveStep(2)} 
+                        style={{ gap: 4 }}
+                      >
+                        <ArrowLeft size={13} /> Back
+                      </button>
+                      <button 
+                        className="btn btn-success btn-sm" 
+                        onClick={() => updateStatus(detail.id, 'Completed', proofFile, submissionComment)}
+                        style={{ gap: 4 }}
+                      >
+                        <CheckCircle2 size={13} /> Confirm & Complete
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {activeStep === 4 && (
+                  <div className="animate-fade" style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', textAlign: 'center', padding: '8px 0' }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: '50%',
+                      background: 'rgba(52, 211, 153, 0.12)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'var(--success)', marginBottom: 4
+                    }}>
+                      <CheckCircle2 size={24} />
+                    </div>
+                    <div>
+                      <h4 style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)', margin: 0 }}>Task Completed Successfully!</h4>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2, margin: 0 }}>
+                        Your deliverables have been submitted and are under review.
+                      </p>
+                    </div>
+
+                    {/* Display submitted proof inside step 4 */}
+                    {(detail.hasCompletionProof || detail.completionProof) && (
+                      <div style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        background: 'var(--bg-secondary)',
+                        borderRadius: 8,
+                        border: '1px solid var(--surface-border)',
+                        textAlign: 'left',
+                        marginTop: 4
+                      }}>
+                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Paperclip size={11} color="var(--primary)" /> Attached Work Proof
+                        </p>
+
+                        {detail.completionProof && detail.completionProof.startsWith('data:image') ? (
+                          <img src={detail.completionProof} alt="Proof" style={{ maxWidth: '100%', maxHeight: 150, borderRadius: 6 }} />
+                        ) : detail.completionProof && detail.completionProof.startsWith('data:') ? (
+                          <a href={detail.completionProof} download="Attachment" style={{ fontSize: '0.8rem', color: 'var(--primary)', textDecoration: 'underline' }}>Download Attachment</a>
+                        ) : (
+                          <>
+                            {proofPreview ? (
+                              proofPreview.contentType?.startsWith('image/') ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  <img src={proofPreview.src} alt="Proof" style={{ maxWidth: '100%', maxHeight: 150, borderRadius: 6, display: 'block' }} />
+                                  <a href={proofPreview.src} download={proofPreview.filename} style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 600 }}>
+                                    <Download size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                                    Download Original ({proofPreview.filename})
+                                  </a>
+                                </div>
+                              ) : (
+                                <a href={proofPreview.src} download={proofPreview.filename} style={{ fontSize: '0.8rem', color: 'var(--primary)', textDecoration: 'underline', fontWeight: 600 }}>
+                                  <Download size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                                  {proofPreview.filename}
+                                </a>
+                              )
+                            ) : (
+                              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, fontStyle: 'italic' }}>
+                                Loading completion proof...
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+                      <button 
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => updateStatus(detail.id, 'In Progress')}
+                        style={{ color: 'var(--text-muted)', fontSize: '0.72rem', gap: 4, padding: '4px 8px' }}
+                      >
+                        <RotateCcw size={12} /> Re-open Task / Request Revision
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
