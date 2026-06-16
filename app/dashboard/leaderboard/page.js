@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useUser } from '../context';
-import { Trophy, Medal, TrendingUp, TrendingDown, Minus, Phone, Handshake, RotateCcw, Mail } from 'lucide-react';
+import { Trophy, Medal, TrendingUp, TrendingDown, Minus, Phone, Handshake, RotateCcw, Mail, CheckCircle2, Clock } from 'lucide-react';
 
 export default function LeaderboardPage() {
   const ctx = useUser();
@@ -40,6 +40,8 @@ export default function LeaderboardPage() {
           { icon: '📞', label: 'Call Made', pts: '100 pts', color: '#3b82f6', bg: '#eff6ff' },
           { icon: '🔄', label: 'Follow-up', pts: '100 pts', color: '#f59e0b', bg: '#fffbeb' },
           { icon: '📧', label: 'Contacted', pts: '10 pts', color: '#8b5cf6', bg: '#f3e8ff' },
+          { icon: '✅', label: 'Task Completed', pts: '+5 pts', color: '#10b981', bg: 'rgba(16,185,129,0.06)' },
+          { icon: '⚠️', label: 'Overdue Task', pts: '-4 pts', color: '#ef4444', bg: 'rgba(239,68,68,0.06)' },
         ].map(p => (
           <div key={p.label} style={{
             display: 'flex', alignItems: 'center', gap: 8,
@@ -75,6 +77,8 @@ export default function LeaderboardPage() {
                 { icon: Phone, label: 'Calls', value: sorted[myRank-1]?.callsMade },
                 { icon: Mail, label: 'Contacts', value: sorted[myRank-1]?.emailsSent || 0 },
                 { icon: RotateCcw, label: 'Follow-ups', value: sorted[myRank-1]?.followUps },
+                { icon: CheckCircle2, label: 'Completed Tasks', value: sorted[myRank-1]?.completedTasksCount || 0 },
+                { icon: Clock, label: 'Pending Tasks', value: sorted[myRank-1]?.pendingTasksCount || 0 },
               ].map((s, i) => (
                 <div key={i} style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
@@ -108,7 +112,7 @@ export default function LeaderboardPage() {
       {/* Table */}
       <div className="table-container">
         <table>
-          <thead><tr><th>Rank</th><th>Employee</th><th>Deals</th><th>Calls</th><th>Contacts</th><th>Follow-ups</th><th>Score</th><th>Trend</th></tr></thead>
+          <thead><tr><th>Rank</th><th>Employee</th><th>Deals</th><th>Calls</th><th>Contacts</th><th>Follow-ups</th><th>Completed Tasks</th><th>Pending Tasks</th><th>Score</th><th>Trend</th></tr></thead>
           <tbody>
             {sorted.map((e, i) => (
               <tr key={`${e.userId}-${i}`} style={e.userId === ctx?.user?.id ? { background: 'rgba(99,102,241,0.04)' } : {}}>
@@ -138,6 +142,8 @@ export default function LeaderboardPage() {
                 <td style={{ fontWeight: 600 }}>{e.callsMade}</td>
                 <td style={{ fontWeight: 600 }}>{e.emailsSent || 0}</td>
                 <td style={{ fontWeight: 600 }}>{e.followUps}</td>
+                <td style={{ fontWeight: 600 }}>{e.completedTasksCount || 0}</td>
+                <td style={{ fontWeight: 600 }}>{e.pendingTasksCount || 0}</td>
                 <td><strong style={{ color: 'var(--primary)', fontSize: '1rem' }}>{e.score}</strong></td>
                 <td>
                   {e.trend === 'up' ? <TrendingUp size={18} color="#34d399" /> : 

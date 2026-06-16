@@ -15,10 +15,11 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   // Load all relevant data
-  const [submissions, users, deductions] = await Promise.all([
+  const [submissions, users, deductions, tasks] = await Promise.all([
     readData('submissions').catch(() => []),
     readData('users').catch(() => []),
     readData('deductions').catch(() => []),
+    readData('tasks').catch(() => []),
   ]);
 
   // Find the logged-in user's department
@@ -48,6 +49,8 @@ export async function GET() {
       emailsSent: 0,
       followUps: 0,
       dealValue: 0,
+      completedTasksCount: 0,
+      pendingTasksCount: 0,
       score: 0,
     };
   }
@@ -92,6 +95,26 @@ export async function GET() {
     }
   }
 
+  // Process tasks
+  if (tasks && tasks.length > 0) {
+    for (const t of tasks) {
+      const uid = t.userId;
+      if (deptUserIds.has(uid) && userStats[uid]) {
+        const stats = userStats[uid];
+        if (t.status === 'Completed') {
+          stats.completedTasksCount += 1;
+          stats.score += 5;
+        } else {
+          stats.pendingTasksCount += 1;
+          const isOverdue = t.deadline && new Date(t.deadline) < new Date();
+          if (isOverdue) {
+            stats.score -= 4;
+          }
+        }
+      }
+    }
+  }
+
   // Process deductions
   if (deductions && deductions.length > 0) {
     for (const ded of deductions) {
@@ -104,7 +127,14 @@ export async function GET() {
 
   // Convert to array, compute trends, sort
   const leaderboard = Object.values(userStats)
-    .filter(u => u.score > 0 || u.dealsCount > 0 || u.callsMade > 0 || u.followUps > 0)
+    .filter(u => 
+      u.score !== 0 || 
+      u.dealsCount > 0 || 
+      u.callsMade > 0 || 
+      u.followUps > 0 ||
+      u.completedTasksCount > 0 ||
+      u.pendingTasksCount > 0
+    )
     .sort((a, b) => b.score - a.score)
     .map((entry, idx, arr) => ({
       ...entry,
