@@ -124,7 +124,7 @@ export default function AttendancePage() {
   });
 
   const aggregatedHours = filteredAttendance.reduce((acc, curr) => {
-    const hrs = curr.status === 'Present' ? 6 : curr.totalHours;
+    const hrs = curr.totalHours ? curr.totalHours : (curr.status === 'Present' ? 6 : 0);
     if (!acc[curr.date]) {
       acc[curr.date] = { ...curr, totalHours: hrs };
     } else {
@@ -308,7 +308,7 @@ export default function AttendancePage() {
                               <p style={{ color: '#ec4899', fontSize: '0.75rem', fontWeight: 600 }}>🎂 Happy Birthday! Click to apply birthday leave</p>
                             )}
                             {tooltip.totalHours > 0 && (
-                              <p style={{ marginBottom: 4 }}>Present for <strong>{tooltip.status === 'Present' ? 6 : tooltip.totalHours}h</strong></p>
+                              <p style={{ marginBottom: 4 }}>Present for <strong>{tooltip.totalHours ? tooltip.totalHours : (tooltip.status === 'Present' ? 6 : 0)}h</strong></p>
                             )}
                             {tooltip.loginTime && (
                               <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>🕐 {tooltip.loginTime} – {tooltip.logoutTime}</p>
