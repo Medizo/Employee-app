@@ -208,25 +208,51 @@ export async function GET(req) {
           const parts = dobStr.split('-');
           birthDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
         }
-        // Check format DDMMYYYY
+        // Check format DDMMYYYY or YYYYMMDD
         else if (/^\d{8}$/.test(dobStr)) {
-          const part1 = parseInt(dobStr.substring(0, 2), 10);
-          const part2 = parseInt(dobStr.substring(2, 4), 10);
-          const year = parseInt(dobStr.substring(4, 8), 10);
-          let day = part1;
-          let month = part2;
-          if (part2 > 12) {
-            day = part2;
-            month = part1;
+          const yearEnd = parseInt(dobStr.substring(4, 8), 10);
+          const yearStart = parseInt(dobStr.substring(0, 4), 10);
+          let day, month, year;
+          if (yearEnd >= 1900 && yearEnd <= 2100) {
+            const val1 = parseInt(dobStr.substring(0, 2), 10);
+            const val2 = parseInt(dobStr.substring(2, 4), 10);
+            day = val1;
+            month = val2;
+            if (val1 <= 12 && val2 > 12) {
+              day = val2;
+              month = val1;
+            }
+            year = yearEnd;
+          } else if (yearStart >= 1900 && yearStart <= 2100) {
+            year = yearStart;
+            const val1 = parseInt(dobStr.substring(4, 6), 10);
+            const val2 = parseInt(dobStr.substring(6, 8), 10);
+            month = val1;
+            day = val2;
+            if (val1 > 12 && val2 <= 12) {
+              day = val1;
+              month = val2;
+            }
           }
-          birthDate = new Date(year, month - 1, day);
+          if (year && month && day) {
+            birthDate = new Date(year, month - 1, day);
+          }
         }
         // Check format with separators (e.g. DD-MM-YYYY, MM-DD-YYYY, DD/MM/YYYY, MM/DD/YYYY)
         else {
           const parts = dobStr.split(/[-/]/);
           if (parts.length === 3) {
             if (parts[0].length === 4) {
-              birthDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+              const year = parseInt(parts[0], 10);
+              const val1 = parseInt(parts[1], 10);
+              const val2 = parseInt(parts[2], 10);
+              let month = val1;
+              let day = val2;
+              if (val1 > 12 && val2 <= 12) {
+                day = val1;
+                month = val2;
+              }
+              birthDate = new Date(year, month - 1, day);
             } else if (parts[2].length === 4) {
               const val1 = parseInt(parts[0], 10);
               const val2 = parseInt(parts[1], 10);
@@ -235,12 +261,9 @@ export async function GET(req) {
               let day = val1;
               let month = val2;
               
-              if (val2 > 12) {
+              if (val1 <= 12 && val2 > 12) {
                 day = val2;
                 month = val1;
-              } else if (val1 > 12) {
-                day = val1;
-                month = val2;
               }
               birthDate = new Date(year, month - 1, day);
             }
